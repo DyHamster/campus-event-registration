@@ -1,0 +1,57 @@
+@startuml
+!include _style.iuml
+title UML 时序图｜取消报名与候补自动递补
+autonumber
+actor "已报名参与者" as User
+boundary "报名接口" as API
+control "场次请求顺序器" as Order
+control "报名服务" as Reg
+control "票据服务" as Ticket
+database "关系数据库" as DB
+control "通知派发器" as Notify
+actor "候补参与者" as Waiter
+
+User -> API : 取消本人报名
+API -> Order : 持久接收 CANCEL 命令
+Order -> DB : 记录该场次 receivedAt、arrivalSeq
+DB --> Order : 接收记录已提交
+Order -> Reg : 按顺序处理取消
+Reg -> DB : BEGIN；按统一顺序锁定\n活动、场次、本人报名
+DB --> Reg : 报名有效、归属正确、取消策略允许
+
+Reg -> DB : 原报名状态改为 CANCELLED\n有效名额减 1
+Reg -> Ticket : 作废原电子票（共享事务）
+Ticket -> DB : Ticket.status = VOID
+Reg -> DB : 锁定最早符合递补条件的候补\nORDER BY arrivalSeq
+DB --> Reg : 候补记录或空结果
+alt 存在可递补候补
+  Reg -> DB : 候补状态转为 CONFIRMED\n名额使用数加 1
+  Reg -> Ticket : 为递补成功的报名出票
+  Ticket -> DB : 插入关联的 VALID 电子票
+  Reg -> DB : 插入 PROMOTED 通知 Outbox
+else 没有符合条件的候补
+  Reg -> DB : 保留释放后的空位
+end
+Reg -> DB : 写操作日志与命令结果；COMMIT
+DB --> Reg : 提交成功
+Reg --> Order : 返回取消结果
+Order --> API : 取消已完成
+API --> User : 报名已取消，旧票失效
+
+Notify -> DB : 读取已提交的通知 Outbox
+DB --> Notify : 待投递的递补事件（若存在）
+opt 本次发生递补
+  Notify -> Waiter : 递补成功通知（渠道待确认）
+  Notify -> DB : 保存投递结果；失败安排重试
+end
+
+note over Reg,DB
+  取消、票据失效、候补晋级、名额变化、日志与 Outbox 必须原子提交。
+  重复取消返回原状态，不再次释放名额或晋级下一位。
+  资格、取消时限、递补窗口经策略判定，未擅自固定待确认规则。
+end note
+legend left
+  交互性图；对应 REQ-016～018、022～023；UI 04、07、11、12。
+endlegend
+@enduml
+

@@ -1,0 +1,63 @@
+@startuml
+!include _style.iuml
+title UML 活动图｜报名、截止与满额候补
+start
+partition "参与者与界面" {
+  :浏览已发布活动，选择场次和报名类别;
+  :填写信息并提交;
+}
+partition "接收与顺序处理" {
+  :校验登录身份和基础参数;
+  if (请求可接收？) then (是)
+    :按场次原子持久化接收命令;\n记录 receivedAt 与 arrivalSeq;
+  else (否)
+    :返回身份或参数错误;
+    stop
+  endif
+  :按 arrivalSeq 取出待处理命令;
+}
+partition "报名服务（同一事务）" {
+  :锁定活动状态与场次;\n复核权限及有效报名记录;
+  if (已有本人同场次有效记录？) then (是)
+    :返回原报名或候补记录;\n不新增有效记录;
+    :保存命令结果并提交;
+    stop
+  else (否)
+  endif
+  if (活动、场次、类别一致且可报名，资格符合？) then (否)
+    :拒绝新报名并保存原因;\n不创建报名或候补;
+    :保存命令结果并提交;
+    stop
+  else (是)
+  endif
+  if (receivedAt 早于报名截止？) then (否)
+    :拒绝截止时刻及之后的新请求;
+    :保存命令结果并提交;
+    stop
+  else (是)
+  endif
+  :先按顺序处理已存在的合格候补与空位;
+  if (仍有可分配名额？) then (是)
+    :创建 CONFIRMED 报名;\n在同一事务中生成有效电子票;
+  else (否)
+    if (参与者同意进入候补？) then (是)
+      :创建 WAITLISTED 报名;\n保留 arrivalSeq 作为候补排序依据;
+    else (否)
+      :返回满额结果，不创建有效报名;
+    endif
+  endif
+  :保存操作日志、Outbox 和命令结果;\n原子提交;
+}
+partition "界面与通知" {
+  :展示报名成功、候补顺位或拒绝原因;
+  :提交后异步派发必要的通知;
+}
+stop
+
+legend left
+  行为性图；对应 REQ-009～019 及 UI 01～04、12、13。
+  场次去重、截止时刻采用半开区间、候补同意方式等是设计选择，需人工确认。
+  receivedAt 由可信接收器记录，不能用客户端时间或业务处理完成时间替代。
+endlegend
+@enduml
+

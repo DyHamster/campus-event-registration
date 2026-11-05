@@ -1,0 +1,52 @@
+@startuml
+!include _style.iuml
+title UML 时序图｜扫码检票、权限与重复签到
+autonumber
+actor "现场检票人员" as Checker
+boundary "移动检票界面" as UI
+control "检票服务" as Check
+control "权限服务" as Auth
+database "关系数据库" as DB
+
+Checker -> UI : 选择授权场次，扫描票码
+UI -> Check : checkIn(code, selectedSession)
+Check -> Auth : 校验角色与目标场次授权
+Auth -> DB : 查询用户与有效 CheckInGrant
+DB --> Auth : 授权结果
+Auth --> Check : 允许 / 拒绝
+alt 无检票权限
+  Check --> UI : 拒绝；不泄露票据或个人信息
+else 已有场次权限
+  Check -> Check : 校验票码完整性与签名／摘要\n验证票据场次与 selectedSession 一致
+  alt 票码格式、签名或目标场次不符
+    Check --> UI : 无效票码；不新增签到
+  else 可以定位目标票据
+    Check -> DB : BEGIN；按统一锁序锁定\n活动、场次、报名、票据；复核授权
+    DB --> Check : 活动、报名、票据及原签到状态
+    alt 活动取消／报名非成功／票失效／策略不允许
+      Check -> DB : 保存拒绝日志；COMMIT
+      Check --> UI : 明确拒绝原因；不新增签到
+    else 已有有效 CheckInRecord
+      Check -> DB : 保存重复扫码日志；COMMIT
+      Check --> UI : 已签到 + 首次时间；不重复计数
+    else 首次合法签到
+      Check -> DB : 插入 CheckInRecord\nUNIQUE(registrationId)
+      Check -> DB : 写入操作者及结果日志；COMMIT
+      DB --> Check : 提交成功
+      Check --> UI : 签到成功 + 姓名摘要 + 签到时间
+    end
+  end
+end
+UI --> Checker : 展示成功、重复或拒绝反馈
+
+note over Check,DB
+  数据库唯一约束与事务共同防止并发重复签到。
+  签到不取消报名，也不释放名额；保留首次签到记录。
+  检票时窗、离线策略、票码有效期与角色兼任规则仍待确认。
+end note
+legend left
+  交互性图；REQ-001、023～024、026 的候选检票方案；UI 09～12。
+  扫码具体规则尚未全部确认，图示为设计建议，不表示已有可运行检票服务。
+endlegend
+@enduml
+

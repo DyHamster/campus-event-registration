@@ -1,0 +1,81 @@
+@startuml
+!pragma layout smetana
+!include _style.iuml
+title UML 类图（补充）｜权限、审核与业务记录
+left to right direction
+hide circle
+hide empty members
+
+class "用户\nUser" as User {
+  - userId : UUID
+  - role : Role
+  + canActAs(role) : Boolean
+}
+enum "角色\nRole" as Role {
+  PARTICIPANT
+  ORGANIZER
+  CHECKER
+  ADMIN
+}
+class "活动\nEvent" as Event {
+  - eventId, organizerId : UUID
+}
+class "活动场次\nEventSession" as Session {
+  - sessionId : UUID
+}
+class "检票授权\nCheckInGrant" as Grant {
+  - grantId : UUID
+  - checkerId, sessionId : UUID
+  - enabled : Boolean
+  + permits(checker, session) : Boolean
+}
+class "审核记录\nReviewRecord" as Review {
+  - reviewId, reviewerId : UUID
+  - decision : APPROVE / REJECT
+  - comment : String
+  - reviewedAt : Instant
+}
+class "通知\nNotification" as Notice {
+  - notificationId, recipientId : UUID
+  - eventId, registrationId : UUID
+  - content : String
+  - status : PENDING / DELIVERED / FAILED
+  - retryCount : Integer
+  + markDelivered()
+  + scheduleRetry()
+}
+class "操作日志\nAuditLog" as Audit {
+  - logId, actorId : UUID
+  - targetType, targetId : String
+  - action, result : String
+  - occurredAt : Instant
+}
+class "签到记录\nCheckInRecord" as CheckIn {
+  - checkInId, registrationId : UUID
+  - checkerId : UUID
+  - checkedInAt : Instant
+}
+
+User ..> Role
+User "1" -- "0..*" Grant : 检票人员
+Session "1" -- "0..*" Grant : 授权范围
+User "1" -- "0..*" Review : 平台管理员
+Event "1" *-- "0..*" Review : 审核历史
+User "1" -- "0..*" Notice : 接收通知
+User "1" -- "0..*" Audit : 执行操作
+User "1" -- "0..*" CheckIn : 执行检票
+
+note bottom of Grant
+  检票权限必须同时满足角色与场次授权。
+  不能仅凭票码可解析就允许签到。
+end note
+note bottom of Notice
+  通知在业务提交后派发，失败保留重试记录。
+  通道、保留期限与隐私访问范围待确认。
+end note
+legend left
+  结构性图。与主类图的同名类表示同一领域实体，此处只展示相关字段。
+  角色兼任方式、完整权限矩阵与非功能指标仍待需求方确认。
+endlegend
+@enduml
+

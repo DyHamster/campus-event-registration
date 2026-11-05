@@ -1,0 +1,111 @@
+@startuml
+!pragma layout smetana
+!include _style.iuml
+title UML 类图｜核心报名与票务领域
+left to right direction
+hide circle
+hide empty members
+
+class "用户\nUser" as User {
+  - userId : UUID
+  - displayName : String
+  - role : Role
+  - profile : ParticipantProfile
+  + canActAs(role) : Boolean
+}
+class "活动\nEvent" as Event {
+  - eventId, organizerId : UUID
+  - title : String
+  - status : EventStatus
+  - publicRegistration : Boolean
+  + submitForReview()
+  + publish(review)
+  + cancel(actor)
+}
+class "活动场次\nEventSession" as Session {
+  - sessionId : UUID
+  - startsAt, endsAt : Instant
+  - location : String
+  - capacity : Integer
+  - registrationDeadline : Instant
+  - eligibilityRule : Rule
+  + isOpenAt(receivedAt) : Boolean
+  + changeCapacity(newCapacity, policy)
+}
+class "报名类别\nRegistrationCategory" as Category {
+  - categoryId : UUID
+  - name : String
+  - price : Decimal
+  - enabled : Boolean
+  + update(name, price)
+  + disable()
+}
+class "接收命令\nAdmissionCommand" as Command {
+  - commandId : UUID
+  - actorId, sessionId : UUID
+  - payloadSnapshot : CommandPayload
+  - kind : REGISTER / CANCEL / RESIZE
+  - receivedAt : Instant
+  - arrivalSeq : Long
+  - processingStatus : PENDING / APPLIED
+  - resultReference : UUID [0..1]
+  - outcomeCode : String
+  + complete(result)
+}
+class "报名记录\nRegistration" as Reg {
+  - registrationId : UUID
+  - userId, sessionId, categoryId : UUID
+  - status : WAITLISTED / CONFIRMED / CANCELLED
+  - receivedAt : Instant
+  - arrivalSeq : Long
+  - formSnapshot : ParticipantProfile
+  + confirm()
+  + enterWaitlist()
+  + cancel(policy)
+}
+class "电子票\nTicket" as Ticket {
+  - ticketId : UUID
+  - tokenDigest : String
+  - status : VALID / VOID
+  - issuedAt : Instant
+  + invalidate(reason)
+}
+class "签到记录\nCheckInRecord" as CheckIn {
+  - checkInId : UUID
+  - registrationId, checkerId : UUID
+  - checkedInAt : Instant
+}
+
+User "1" -- "0..*" Event : 创建
+Event "1" *-- "0..*" Session : 场次
+Session "1" *-- "1..*" Category : 类别与票价
+User "1" -- "0..*" Reg : 参与者
+Session "1" -- "0..*" Reg : 场次名单
+Category "1" -- "0..*" Reg : 所选类别
+Session "1" -- "0..*" Command : 顺序接收
+Command "0..*" --> "0..1" Reg : 处理结果
+Reg "1" *-- "0..1" Ticket : 成功后出票
+Reg "1" *-- "0..1" CheckIn : 唯一有效签到
+
+note bottom of Reg
+  有效报名唯一：(userId, sessionId)
+  仅 WAITLISTED / CONFIRMED 参与唯一约束。
+  候补是报名状态，不另建一套候补实体。
+  已签到由签到记录推导，不释放名额。
+end note
+note bottom of Command
+  同场次持久接收并按 arrivalSeq 处理。
+  receivedAt 判断截止；arrivalSeq 判断先后。
+end note
+note bottom of Category
+  各类别共享场次容量，发布前至少一个可用类别。
+  报名类别必须属于所选场次。
+  只记录票价，不默认接入真实支付。
+end note
+legend left
+  结构性图；Role、授权、审核、通知与日志见补充类图。
+  ParticipantProfile 是个人信息值对象，Rule 是资格策略；字段与规则仍需确认。
+  关系及业务约束见 UML设计说明.md；场次去重是设计选择。
+endlegend
+@enduml
+

@@ -1,0 +1,42 @@
+@startuml
+!pragma layout smetana
+!include _style.iuml
+title UML 状态图｜活动的创建、审核、发布与取消
+left to right direction
+state "草稿\nDRAFT" as Draft
+state "待审核\nPENDING_REVIEW" as Pending
+state "已发布\nPUBLISHED" as Published
+state "已驳回\nREJECTED（设计补充）" as Rejected #FFF1D8
+state "已取消\nCANCELLED" as Cancelled #FBECE9
+
+[*] --> Draft : 举办方创建
+Draft --> Draft : 编辑活动、场次、类别与票价
+Draft --> Pending : 提交审核\n[必要信息完整、权限正确]
+Pending --> Published : 管理员审核通过\n/ 保存审核记录并公开展示
+Pending --> Rejected : 管理员驳回\n/ 保存理由与审核记录
+Rejected --> Draft : 举办方按意见修改
+Draft --> Cancelled : 举办方取消\n[符合取消策略]
+Pending --> Cancelled : 举办方取消\n[符合取消策略]
+Published --> Cancelled : 举办方取消\n[符合取消策略]
+Cancelled --> [*] : 业务终止；历史记录按保留策略保存
+
+Draft : 非公开，不接受报名
+Pending : 不提供公开报名入口
+Published : 仅在截止前、符合资格且有可用类别时接收新报名
+Cancelled : 停止新报名；票据失效与通知按确认后的方案执行
+
+note bottom of Rejected
+  审核驳回与重新提交为补充设计，
+  具体规则仍需需求方确认。
+end note
+note bottom of Published
+  报名是否截止、名额是否已满属于派生条件，
+  不与活动审核发布状态混为一谈。
+  关键修改是否重新审核、各状态取消时机仍待确认。
+end note
+legend left
+  行为性图；对应 REQ-002～008、012；UI 02、05、06、08、12。
+  取消流程需要服务端权限与策略校验，不因界面显示按钮而直接允许。
+endlegend
+@enduml
+

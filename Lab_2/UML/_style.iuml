@@ -1,0 +1,44 @@
+' Campus event system: common appearance, all includes are local.
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "PingFang SC"
+skinparam defaultFontSize 14
+skinparam defaultFontColor #182E29
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #47685C
+skinparam ArrowThickness 1.3
+skinparam LineThickness 1
+skinparam Padding 4
+skinparam nodesep 42
+skinparam ranksep 50
+skinparam TitleFontSize 22
+skinparam TitleFontColor #174F43
+skinparam FooterFontSize 11
+skinparam FooterFontColor #73817B
+skinparam packageStyle rectangle
+skinparam packageBackgroundColor #F5F7F3
+skinparam packageBorderColor #A8BDAF
+skinparam classBackgroundColor #F8FBF6
+skinparam classBorderColor #50735F
+skinparam classAttributeIconSize 0
+skinparam componentBackgroundColor #E8F0E8
+skinparam componentBorderColor #50735F
+skinparam interfaceBackgroundColor #F8FBF6
+skinparam databaseBackgroundColor #F4F6F2
+skinparam databaseBorderColor #50735F
+skinparam noteBackgroundColor #FFF5DF
+skinparam noteBorderColor #C6A36C
+skinparam noteFontColor #5C5039
+skinparam sequenceParticipantBackgroundColor #E8F0E8
+skinparam sequenceParticipantBorderColor #50735F
+skinparam sequenceLifeLineBorderColor #9AAFA2
+skinparam sequenceGroupBackgroundColor #F8FAF5
+skinparam sequenceGroupBorderColor #A8BDAF
+skinparam activityBackgroundColor #E8F0E8
+skinparam activityBorderColor #50735F
+skinparam activityDiamondBackgroundColor #F2F6DC
+skinparam activityDiamondBorderColor #718756
+skinparam stateBackgroundColor #E8F0E8
+skinparam stateBorderColor #50735F
+footer 校园活动票务与报名系统 · 实验二 · AI 设计初稿
+
