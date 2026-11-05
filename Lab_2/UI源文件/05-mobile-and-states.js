@@ -1,0 +1,55 @@
+
+function mobileHeader(p,title,dark=false){const fg=dark?C.white:C.ink;text(p,24,15,'18:22',13,fg,true);rect(p,350,22,18,9,fg,2);rect(p,371,24,2,5,fg,1);text(p,317,12,'5G',12,fg);text(p,24,60,'‹',28,fg);text(p,69,68,title,19,fg,true);}
+function mockQR(p,x,y,unit=6,col=C.deep){const size=29,grid=Array.from({length:size},()=>Array(size).fill(false));function finder(a,b){for(let yy=0;yy<7;yy++)for(let xx=0;xx<7;xx++)grid[b+yy][a+xx]=xx===0||yy===0||xx===6||yy===6||(xx>=2&&xx<=4&&yy>=2&&yy<=4);}finder(0,0);finder(22,0);finder(0,22);for(let yy=0;yy<size;yy++)for(let xx=0;xx<size;xx++){if((xx<8&&yy<8)||(xx>20&&yy<8)||(xx<8&&yy>20))continue;grid[yy][xx]=((xx*17+yy*29+xx*yy*3)%11)<5;}let path='';grid.forEach((row,yy)=>row.forEach((v,xx)=>{if(v){const a=xx*unit,b=yy*unit;path+='M '+a+' '+b+' L '+(a+unit)+' '+b+' L '+(a+unit)+' '+(b+unit)+' L '+a+' '+(b+unit)+' Z ';}}));const n=pixso.createVector();p.appendChild(n);n.vectorPaths=[{windingRule:'NONZERO',data:path}];n.fills=solid(col);n.x=x;n.y=y;n.name='电子票示意二维码';return n;}
+const c=screen('10 / 现场扫码检票',1600,2600,430,932);c.fills=solid(C.deep);mobileHeader(c,'现场检票',true);
+const ev=frame(c,24,121,382,89,'#235448',12,'当前授权场次');text(ev,16,13,'秋日草坪音乐会',17,C.white,true);text(ev,16,48,'11月14日 · 晚场 18:30',12,'#BBD2C5');chev(ev,346,43,C.white);
+pill(c,24,229,'已授权 · 仅限本场次','green',198);
+const camera=frame(c,24,281,382,292,'#0B3029',16,'扫码取景区域');
+for(let i=0;i<7;i++)rect(camera,40+i*44,0,1,292,'#143D33');
+for(let i=0;i<6;i++)rect(camera,0,25+i*44,382,1,'#143D33');
+const x=62,y=28,w=258,h=232;
+[[x,y,1,1],[x+w-22,y,-1,1],[x,y+h-22,1,-1],[x+w-22,y+h-22,-1,-1]].forEach(([a,b])=>{rect(camera,a,b,22,3,C.lime,1);rect(camera,a,b,3,22,C.lime,1);});
+rect(camera,66,142,250,2,C.lime,1);text(c,93,592,'将参与者电子票二维码放入框内',13,'#C8D8CF');
+const result=frame(c,24,638,382,158,C.white,14,'最新检票结果');
+ellipse(result,18,21,43,43,C.soft);text(result,29,21,'✓',24,C.green,true);text(result,77,18,'签到成功',22,C.green,true);text(result,77,57,'林同学  ·  学号尾号 0176',14,C.ink,true);text(result,18,104,'普通入场名额',12,C.muted);text(result,229,104,'18:22:34 完成核验',12,C.muted);
+button(c,24,819,182,'手动输入票号','secondary');button(c,224,819,182,'查看签到名单','lime','07 / 报名名单与容量');
+text(c,24,893,'已签到 128 / 176 人',12,'#AFC9BA');text(c,294,893,'网络连接正常',11,'#AFC9BA');
+const t=screen('11 / 参与者电子票',2080,2600,430,932);mobileHeader(t,'我的电子票');
+const ticket=panel(t,24,127,382,674,'电子票');
+const band=frame(ticket,1,1,380,145,C.green,15,'电子票抬头');
+text(band,22,20,'CAMPUS LIVE',11,C.lime,true);text(band,22,52,'秋日草坪音乐会',24,C.white,true);text(band,22,101,'普通入场名额 · 免费',13,'#C1D8C8');
+pill(ticket,22,167,'有效票 · 待签到','green',160);
+text(ticket,22,218,'11月14日 周六 · 18:30—21:00',14,C.ink,true);text(ticket,22,253,'仙林校区 · 炜华体育场',13,C.muted);
+rect(ticket,84,302,214,214,C.white,8);mockQR(ticket,104,322,6);
+text(ticket,112,534,'现场出示此码完成签到',12,C.muted);
+for(let i=0;i<24;i++)rect(ticket,14+i*15,576,8,1,C.line);
+ellipse(ticket,-10,566,20,20,C.bg);ellipse(ticket,372,566,20,20,C.bg);
+text(ticket,22,601,'林同学',16,C.ink,true);text(ticket,22,636,'REG-1114-0176',12,C.muted);text(ticket,268,605,'仅限本人使用',12,C.green,true);
+note(t,24,825,382,'入场提醒','请提前到场；报名取消后电子票将失效。');
+text(t,109,910,'电子票样例 · 二维码为设计示意',10,C.muted);
+const b=screen('12 / 状态与确认',3200,2600,1440,1400);
+heading(b,48,35,'STATES & CONFIRMATIONS','每一步，都有明确回应。','关键业务状态与二次确认弹窗 · 展示文案、动作及影响范围');
+function statecard(x,title,body,tone,btn,kind='primary'){const n=panel(b,x,174,432,290,title);const col=tone==='amber'?C.amber:C.green;ellipse(n,24,24,44,44,tone==='amber'?C.amberBg:C.soft);text(n,37,26,tone==='amber'?'!':'✓',23,col,true);text(n,24,92,title,22,col,true);text(n,24,140,body,13,C.muted,false,384);button(n,24,220,384,btn,kind,tone==='green'?'11 / 参与者电子票':'');return n;}
+statecard(48,'报名成功','你的名额已确认。电子票已放入“我的活动”，到场后出示即可。','green','查看我的电子票');
+statecard(504,'报名已截止','本场活动于 11月13日 18:00 截止报名，无法继续提交。','amber','报名已截止','disabled');
+statecard(960,'当前名额已满','可申请顺序候补，空位释放后自动递补；候补不代表报名成功。','amber','加入候补');
+const cancel=panel(b,48,504,432,450,'取消报名确认');
+text(cancel,24,24,'确认取消报名？',23,C.ink,true);text(cancel,24,82,'秋日草坪音乐会 · 11月14日 晚场',14,C.ink,true);
+text(cancel,24,132,'取消后将释放名额，当前电子票失效。\n如需再次参加，须重新报名并以当时名额为准。',13,C.muted,false,384);
+note(cancel,24,212,384,'操作影响','如存在候补，将按队列顺序自动递补。','amber');
+button(cancel,24,333,184,'保留报名','secondary','04 / 我的活动');button(cancel,224,333,184,'确认取消','danger');
+text(cancel,24,400,'取消后的状态将在“我的活动”中保留。',11,C.muted);
+const cap=panel(b,504,504,432,450,'容量调整确认');
+text(cap,24,24,'调整场次容量',23,C.ink,true);field(cap,24,83,384,'新容量 *','160 人');
+text(cap,24,181,'当前容量 200 · 已报名 176',13,C.muted);
+note(cap,24,225,384,'将影响 16 位参与者','按报名顺序保留较早者，超额人员转候补。','amber');
+text(cap,24,322,'确认后将同步名单并通知受影响人员。',12,C.muted);
+button(cap,24,368,184,'暂不调整','secondary','07 / 报名名单与容量');button(cap,224,368,184,'确认调整','primary');
+const err=panel(b,960,504,432,450,'检票异常结果');
+text(err,24,24,'检票异常反馈',23,C.ink,true);
+note(err,24,85,384,'该电子票已完成签到','首次签到：18:22:34。本次不重复记录。','amber');
+note(err,24,183,384,'电子票已失效','关联报名已取消，请参与者核对报名状态。','red');
+note(err,24,281,384,'当前账号无检票权限','请切换到已授权的活动，或联系举办方。','red');
+text(err,24,388,'异常结果保留原因，避免无提示的失败。',12,C.muted);
+text(b,48,1344,'状态示例用于原型评审；具体取消时限与容量调整规则需与需求方确认。',12,C.muted);
+return done();

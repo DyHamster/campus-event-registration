@@ -1,0 +1,157 @@
+{
+  "date": "2026-11-05",
+  "project": "校园活动票务与报名系统",
+  "status": "AI设计初稿，已完成AI视觉与一致性校对，待用户人工审查",
+  "file_key": "tiIxjcNicX7P2YriXu54qw",
+  "file_url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A1117",
+  "page_id": "0:1",
+  "frames": [
+    {
+      "id": "4:1117",
+      "name": "00 / 设计导览",
+      "width": 1440,
+      "height": 1000,
+      "children": 14,
+      "png": "../UI界面/00-设计导览.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A1117"
+    },
+    {
+      "id": "4:1",
+      "name": "01 / 发现活动",
+      "width": 1440,
+      "height": 1000,
+      "children": 34,
+      "png": "../UI界面/01-发现活动.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A1"
+    },
+    {
+      "id": "4:104",
+      "name": "02 / 活动详情",
+      "width": 1440,
+      "height": 1000,
+      "children": 39,
+      "png": "../UI界面/02-活动详情.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A104"
+    },
+    {
+      "id": "4:194",
+      "name": "03 / 确认报名",
+      "width": 1440,
+      "height": 1000,
+      "children": 25,
+      "png": "../UI界面/03-确认报名.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A194"
+    },
+    {
+      "id": "4:274",
+      "name": "04 / 我的活动",
+      "width": 1440,
+      "height": 1000,
+      "children": 32,
+      "png": "../UI界面/04-我的活动.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A274"
+    },
+    {
+      "id": "4:357",
+      "name": "05 / 举办方活动管理",
+      "width": 1440,
+      "height": 1000,
+      "children": 47,
+      "png": "../UI界面/05-举办方活动管理.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A357"
+    },
+    {
+      "id": "4:493",
+      "name": "06 / 创建与编辑活动",
+      "width": 1440,
+      "height": 1120,
+      "children": 35,
+      "png": "../UI界面/06-创建与编辑活动.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A493"
+    },
+    {
+      "id": "4:607",
+      "name": "07 / 报名名单与容量",
+      "width": 1440,
+      "height": 1000,
+      "children": 47,
+      "png": "../UI界面/07-报名名单与容量.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A607"
+    },
+    {
+      "id": "4:737",
+      "name": "08 / 平台活动审核",
+      "width": 1440,
+      "height": 1000,
+      "children": 31,
+      "png": "../UI界面/08-平台活动审核.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A737"
+    },
+    {
+      "id": "4:826",
+      "name": "09 / 角色权限与操作日志",
+      "width": 1440,
+      "height": 1000,
+      "children": 32,
+      "png": "../UI界面/09-角色权限与操作日志.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A826"
+    },
+    {
+      "id": "4:951",
+      "name": "10 / 现场扫码检票",
+      "width": 430,
+      "height": 932,
+      "children": 15,
+      "png": "../UI界面/10-现场扫码检票.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A951"
+    },
+    {
+      "id": "4:1001",
+      "name": "11 / 参与者电子票",
+      "width": 430,
+      "height": 932,
+      "children": 9,
+      "png": "../UI界面/11-参与者电子票.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A1001"
+    },
+    {
+      "id": "4:1053",
+      "name": "12 / 状态与确认",
+      "width": 1440,
+      "height": 1400,
+      "children": 11,
+      "png": "../UI界面/12-状态与确认.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A1053"
+    },
+    {
+      "id": "4:1151",
+      "name": "13 / 组件与系统反馈",
+      "width": 1440,
+      "height": 1060,
+      "children": 11,
+      "png": "../UI界面/13-组件与系统反馈.png",
+      "url": "https://pixso.cn/app/design/tiIxjcNicX7P2YriXu54qw?page-id=0%3A1&item-id=4%3A1151"
+    }
+  ],
+  "verification": {
+    "textCount": 633,
+    "textOverflow": [],
+    "visualReview": "所有画板已截图检查；修改后的关键画板再次检查"
+  },
+  "prototype": {
+    "editable": true,
+    "interactiveConnections": false,
+    "businessLogic": false,
+    "qrCode": "设计示意，不是真实票码"
+  },
+  "palette": {
+    "primary": "#174F43",
+    "background": "#F5F6F3",
+    "accent": "#DAF29A",
+    "text": "#182E29"
+  },
+  "fonts": [
+    "Noto Sans SC",
+    "Inter"
+  ]
+}

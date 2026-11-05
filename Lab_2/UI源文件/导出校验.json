@@ -1,0 +1,108 @@
+{
+  "date": "2026-11-05",
+  "png_count": 14,
+  "png_integrity": "passed",
+  "dimensions": "passed",
+  "text_count": 633,
+  "text_overflow": [],
+  "files": [
+    {
+      "file": "00-设计导览.png",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 193329,
+      "sha256": "2981463a35c8aa38c5f1893339b21e6009401c673431e40efea162661dea514c"
+    },
+    {
+      "file": "01-发现活动.png",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 262709,
+      "sha256": "0b059c9f5e174c8b27556d337ac03c89490540828d208b814410674905bc5117"
+    },
+    {
+      "file": "02-活动详情.png",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 245608,
+      "sha256": "af96582be09288ab25954df2d3a85c7f192b5198b61f35b8b5700bf0c7eae41e"
+    },
+    {
+      "file": "03-确认报名.png",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 212597,
+      "sha256": "891b97007064e8b8e40f81f448c62d34042cfd6c293e3f031e29718d7a305d67"
+    },
+    {
+      "file": "04-我的活动.png",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 205249,
+      "sha256": "10c7c3b65ba491c25302ba0d1abe064f1c1b5038159d4281af79366ac35f75e0"
+    },
+    {
+      "file": "05-举办方活动管理.png",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 216112,
+      "sha256": "053aaa647c95ab0a13e49d20f514d62b453b0feb2829646834cf462106cdb273"
+    },
+    {
+      "file": "06-创建与编辑活动.png",
+      "width": 1440,
+      "height": 1120,
+      "bytes": 218981,
+      "sha256": "6e19d4292098a48c766d8e039e74544893a86876f9479c06ed715ae2bdfe73de"
+    },
+    {
+      "file": "07-报名名单与容量.png",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 221545,
+      "sha256": "fd46fdd44eda254675cd991a79a46f40528156e9613535ef326e63ef7010e396"
+    },
+    {
+      "file": "08-平台活动审核.png",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 224308,
+      "sha256": "89f7d765191fde98a92991d750466398eb1344e128bf967d0b920914658be386"
+    },
+    {
+      "file": "09-角色权限与操作日志.png",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 212275,
+      "sha256": "9ee1c4995c06c0950d1d24efc6b3948f24998fac2b1f716768440a2945bf2561"
+    },
+    {
+      "file": "10-现场扫码检票.png",
+      "width": 430,
+      "height": 932,
+      "bytes": 90441,
+      "sha256": "4c282345c9a9d25444258be9bf4c2ee39f2271e883157d5f83878beb72aefbab"
+    },
+    {
+      "file": "11-参与者电子票.png",
+      "width": 430,
+      "height": 932,
+      "bytes": 131886,
+      "sha256": "3786e22358572ef00e3831df2b6a23bca390894cea1b8cf15972bc54262bf697"
+    },
+    {
+      "file": "12-状态与确认.png",
+      "width": 1440,
+      "height": 1400,
+      "bytes": 362559,
+      "sha256": "1e892ab695b8b75535515fcf0a0c8837fa8a5af3bb870f89f3636303bf641545"
+    },
+    {
+      "file": "13-组件与系统反馈.png",
+      "width": 1440,
+      "height": 1060,
+      "bytes": 248051,
+      "sha256": "d5844124b56206edd9effb0f7590e01a78a63e219580b53077b1fc3b9f1844ef"
+    }
+  ]
+}
