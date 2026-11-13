@@ -1,72 +1,22 @@
 @startuml
 !include _style.iuml
-title UML 时序图｜两人争抢最后一个名额
-autonumber
-actor "参与者 A" as A
-actor "参与者 B" as B
-boundary "报名接口" as API
-control "场次请求顺序器\n持久接收与有序处理" as Order
-control "报名服务" as Reg
-control "票据服务" as Ticket
-database "关系数据库" as DB
+title UML 时序图 · 最后一个名额的分配
+hide footbox
 
-note over A,DB
-  场景前提：两人身份、资格有效，无历史有效报名，接收时未截止，场次仅余 1 个名额。
-  同场次顺序器的原子持久接收点定义 receivedAt 与 arrivalSeq；同一场次只有一个有效处理者。
-end note
-group 接收与持久化编号
-  A -> API : 提交报名（场次、类别、信息）
-  API -> Order : 接收已认证请求 A
-  Order -> DB : 原子分配 arrivalSeq=101\n保存 receivedAt_A、命令与 PENDING
-  DB --> Order : 接收记录已提交
-  Order --> API : requestId_A
-  API --> A : 请求已接收，等待确认
-  B -> API : 提交报名（同一场次）
-  API -> Order : 接收已认证请求 B
-  Order -> DB : 原子分配 arrivalSeq=102\n保存 receivedAt_B、命令与 PENDING
-  DB --> Order : 接收记录已提交
-  Order --> API : requestId_B
-  API --> B : 请求已接收，等待确认
+actor "参与者甲" as A
+actor "参与者乙" as B
+participant "报名与候补管理" as Registration
+participant "数据管理" as Data
+
+A -> Registration : 提交报名（先收到）
+B -> Registration : 提交报名（后收到，愿意候补）
+
+group 两人均符合资格，按接收顺序分配
+  Registration -> Data : 保存甲的报名，占用最后一个名额
+  Data --> Registration : 保存成功
+  Registration --> A : 报名成功
+  Registration -> Data : 保存乙的候补记录
+  Data --> Registration : 保存成功
+  Registration --> B : 已加入候补
 end
-
-group 先处理 arrivalSeq=101（A）
-  Order -> Reg : process(command_A)
-  Reg -> DB : BEGIN；锁定活动状态和场次\n复核资格、receivedAt、重复记录
-  DB --> Reg : 通过校验；剩余 1
-  Reg -> DB : 插入 CONFIRMED 报名\n有效数量增加到容量上限
-  Reg -> Ticket : 为该报名出票（共享事务）
-  Ticket -> DB : 插入 VALID 票据
-  Reg -> DB : 保存日志、Outbox 与命令结果；COMMIT
-  DB --> Reg : 提交成功
-  Reg --> Order : A 报名成功
-end
-
-group 后处理 arrivalSeq=102（B）
-  Order -> Reg : process(command_B)
-  Reg -> DB : BEGIN；按相同锁序复核
-  DB --> Reg : 通过校验；剩余 0
-  Reg -> DB : 插入 WAITLISTED 报名\narrivalSeq=102，不生成有效票
-  Reg -> DB : 保存日志与命令结果；COMMIT
-  DB --> Reg : 提交成功
-  Reg --> Order : B 进入候补（已同意候补）
-end
-
-A -> API : 查询 requestId_A 的处理结果
-API -> DB : 读取已提交命令结果与本人票据
-DB --> API : CONFIRMED + Ticket
-API --> A : 报名成功，查看电子票
-B -> API : 查询 requestId_B 的处理结果
-API -> DB : 读取已提交命令结果与候补顺位
-DB --> API : WAITLISTED + position
-API --> B : 展示候补状态
-
-note over Order,DB
-  消费重试：命令结果、报名唯一约束和业务写入共同保持幂等。
-  事务失败则不标记 APPLIED；重试仍处理原命令，禁止再次分配名额。
-  FIFO 不依赖数据库锁的争抢顺序；锁只维护容量与跨记录一致性。
-end note
-legend left
-  交互性图；对应 REQ-012～015、018、027。这里只展示最后名额场景，拒绝分支见活动图。
-endlegend
 @enduml
-

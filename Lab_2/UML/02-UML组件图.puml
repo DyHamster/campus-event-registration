@@ -1,60 +1,26 @@
 @startuml
 !pragma layout smetana
 !include _style.iuml
-title UML 组件图｜六个模块与分层协作
-top to bottom direction
+title UML 组件图 · 系统模块
 
-rectangle "界面层" {
-  component "参与者 Web\n发现 / 报名 / 我的活动" as ParticipantUI
-  component "举办方与管理员 Web\n活动 / 名单 / 审核" as AdminUI
-  component "检票移动界面\n授权场次 / 扫码 / 结果" as CheckUI
-  ParticipantUI -[hidden]right-> AdminUI
-  AdminUI -[hidden]right-> CheckUI
-}
-component "统一应用接口\n身份上下文 / 参数校验 / 请求与结果" as API #DAF29A
+rectangle "校园活动票务与报名系统" {
+  component "<b>用户与权限管理</b>\n身份与角色" as Auth
+  component "<b>活动与票务管理</b>\n创建、审核、发布与取消" as Event
+  component "<b>活动查询与展示</b>\n公开活动与个人记录" as Query
+  component "<b>报名与候补管理</b>\n报名、取消与递补" as Registration
+  component "<b>电子票与检票管理</b>\n票据核验与签到" as Ticket
+  component "<b>数据管理</b>\n名单导出、统计与日志" as Data #E9E9E9
+  database "数据库" as Database
 
-rectangle "应用服务层（模块化单体）" {
-  component "① 用户与权限管理\nAuthService / CheckInGrant" as Auth
-  component "② 活动与票务管理\n创建 / 审核 / 发布 / 修改 / 取消" as Event
-  component "③ 活动查询与展示\n公开活动 / 本人记录" as Query
-  component "④ 报名与候补管理\n场次顺序器 / RegistrationService\n报名 / 取消 / 递补 / 容量" as Reg
-  component "⑤ 电子票与检票管理\nTicketService / CheckInService" as Ticket
-  component "⑥ 数据管理\nRepositories / UnitOfWork\n操作日志 / Outbox" as Data
+  Auth -[hidden]right-> Event
   Event -[hidden]right-> Query
-  Query -[hidden]right-> Reg
-  Reg -right-> Ticket : 出票 / 作废\n共享事务
+  Query -[hidden]right-> Registration
+  Auth --> Data
+  Event --> Data
+  Query --> Data
+  Registration --> Data
+  Ticket --> Data
+  Registration -right-> Ticket : 出票与作废
+  Data --> Database
 }
-database "关系型数据库（设计选择）\n用户 / 活动 / 场次 / 类别 / 接收命令\n报名 / 票据 / 签到 / 授权 / 审核\n操作日志 / 通知 / Outbox" as DB
-component "通知派发器\n提交后读取 Outbox / 投递 / 重试" as Dispatcher
-cloud "通知通道\n具体渠道待确认" as Channel
-
-ParticipantUI --> API
-AdminUI --> API
-CheckUI --> API
-API --> Auth : 统一鉴权
-API --> Event : 活动与审核
-API --> Query : 查询
-API --> Reg : 报名与名额变更
-API --> Ticket : 电子票与检票
-Auth --> Data : 用户 / 场次授权
-Event --> Data : 活动 / 审核记录
-Query --> Data : 授权范围内读取
-Reg --> Data : 接收命令 / 名单 / 候补
-Ticket --> Data : 票据 / 唯一签到
-Data --> DB : 事务、外键、行锁、唯一约束
-DB ..> Dispatcher : 已提交事件
-Dispatcher --> Channel : 状态变更通知
-Dispatcher --> DB : 保存投递结果
-
-note bottom of Reg
-  接收编号与持久化形成同场次顺序；
-  事务维护名额、报名、票据的一致性。
-  仅加锁不能证明先到先得。
-end note
-legend left
-  结构性图。六模块属于同一后端，不要求拆成微服务。
-  接口统一鉴权，各服务仍检查资源归属和业务策略；检票事务复核场次授权。
-  业务写入、日志与 Outbox 同事务提交，通知在提交后投递。
-endlegend
 @enduml
-

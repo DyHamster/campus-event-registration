@@ -1,44 +1,48 @@
-' Campus event system: common appearance, all includes are local.
+skinparam dpi 160
 skinparam backgroundColor #FFFFFF
 skinparam defaultFontName "PingFang SC"
-skinparam defaultFontSize 14
-skinparam defaultFontColor #182E29
+skinparam defaultFontSize 15
+skinparam defaultFontColor #242424
 skinparam shadowing false
 skinparam roundcorner 10
-skinparam ArrowColor #47685C
-skinparam ArrowThickness 1.3
-skinparam LineThickness 1
-skinparam Padding 4
-skinparam nodesep 42
-skinparam ranksep 50
+skinparam ArrowColor #4A4A4A
+skinparam ArrowThickness 1
+skinparam ArrowFontSize 13
+skinparam Padding 6
+skinparam TitleFontColor #181818
 skinparam TitleFontSize 22
-skinparam TitleFontColor #174F43
-skinparam FooterFontSize 11
-skinparam FooterFontColor #73817B
-skinparam packageStyle rectangle
-skinparam packageBackgroundColor #F5F7F3
-skinparam packageBorderColor #A8BDAF
-skinparam classBackgroundColor #F8FBF6
-skinparam classBorderColor #50735F
-skinparam classAttributeIconSize 0
-skinparam componentBackgroundColor #E8F0E8
-skinparam componentBorderColor #50735F
-skinparam interfaceBackgroundColor #F8FBF6
-skinparam databaseBackgroundColor #F4F6F2
-skinparam databaseBorderColor #50735F
-skinparam noteBackgroundColor #FFF5DF
-skinparam noteBorderColor #C6A36C
-skinparam noteFontColor #5C5039
-skinparam sequenceParticipantBackgroundColor #E8F0E8
-skinparam sequenceParticipantBorderColor #50735F
-skinparam sequenceLifeLineBorderColor #9AAFA2
-skinparam sequenceGroupBackgroundColor #F8FAF5
-skinparam sequenceGroupBorderColor #A8BDAF
-skinparam activityBackgroundColor #E8F0E8
-skinparam activityBorderColor #50735F
-skinparam activityDiamondBackgroundColor #F2F6DC
-skinparam activityDiamondBorderColor #718756
-skinparam stateBackgroundColor #E8F0E8
-skinparam stateBorderColor #50735F
-footer 校园活动票务与报名系统 · 实验二 · AI 设计初稿
+skinparam TitleFontStyle bold
 
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #FAFAFA
+skinparam classHeaderBackgroundColor #E9E9E9
+skinparam classBorderColor #777777
+skinparam classFontColor #181818
+skinparam classFontStyle bold
+
+skinparam rectangleBackgroundColor #FAFAFA
+skinparam rectangleBorderColor #B0B0B0
+skinparam rectangleFontColor #181818
+skinparam rectangleFontStyle bold
+skinparam componentBackgroundColor #FFFFFF
+skinparam componentBorderColor #858585
+skinparam componentFontColor #181818
+skinparam databaseBackgroundColor #F1F1F1
+skinparam databaseBorderColor #858585
+
+skinparam activityBackgroundColor #F6F6F6
+skinparam activityBorderColor #777777
+skinparam activityDiamondBackgroundColor #FFFFFF
+skinparam activityDiamondBorderColor #777777
+skinparam activityStartColor #242424
+skinparam activityEndColor #242424
+
+skinparam sequenceParticipantBackgroundColor #EEEEEE
+skinparam sequenceParticipantBorderColor #777777
+skinparam sequenceParticipantFontColor #181818
+skinparam sequenceLifeLineBorderColor #A0A0A0
+skinparam sequenceGroupBackgroundColor #F3F3F3
+skinparam sequenceGroupBorderColor #8F8F8F
+skinparam sequenceGroupHeaderFontColor #181818
+skinparam actorBackgroundColor #EEEEEE
+skinparam actorBorderColor #777777
