@@ -11,6 +11,7 @@ from .access import (
     AuthenticationError,
     Permission,
     Role,
+    User,
     authenticate,
     permissions_for,
     require_permission,
@@ -26,6 +27,14 @@ from .registration_cli import (
     run_registration_command,
 )
 from .registrations import RegistrationError, RegistrationService
+from .reporting_cli import (
+    add_audit_arguments,
+    add_roster_arguments,
+    audit_failed_command,
+    run_audit_command,
+    run_roster_command,
+)
+from .rosters import RosterError, RosterService
 from .ticket_cli import (
     add_check_in_arguments,
     add_checker_access_arguments,
@@ -48,6 +57,16 @@ ENTRY_NAMES = {
     Permission.CHECK_IN: "检票签到",
     Permission.REGISTRATIONS: "报名与候补",
     Permission.CHECKER_ACCESS: "检票授权",
+    Permission.ROSTERS: "场次名单与统计",
+    Permission.AUDIT: "操作日志",
+}
+
+ENTRY_ARGUMENTS = {
+    Permission.REGISTRATIONS: add_registration_arguments,
+    Permission.CHECK_IN: add_check_in_arguments,
+    Permission.CHECKER_ACCESS: add_checker_access_arguments,
+    Permission.ROSTERS: add_roster_arguments,
+    Permission.AUDIT: add_audit_arguments,
 }
 
 
@@ -72,14 +91,11 @@ def build_parser() -> argparse.ArgumentParser:
     entries = login.add_subparsers(dest="entry", help="要进入的功能")
     for permission, name in ENTRY_NAMES.items():
         entry = entries.add_parser(permission.value, help=name)
-        if permission is Permission.REGISTRATIONS:
-            add_registration_arguments(entry)
-        elif permission is Permission.CHECK_IN:
-            add_check_in_arguments(entry)
-        elif permission is Permission.CHECKER_ACCESS:
-            add_checker_access_arguments(entry)
-        else:
+        configure = ENTRY_ARGUMENTS.get(permission)
+        if configure is None:
             add_event_arguments(entry, permission)
+        else:
+            configure(entry)
     return parser
 
 
@@ -117,30 +133,51 @@ def login(args: argparse.Namespace) -> None:
             output = "\n".join(lines)
         else:
             permission = Permission(args.entry)
-            require_permission(user, permission)
             require_current_schema(connection)
-            heading = f"已进入「{ENTRY_NAMES[permission]}」。"
-            match permission:
-                case Permission.REGISTRATIONS:
-                    registrations = RegistrationService(connection, user)
-                    output = run_registration_command(registrations, args)
-                case Permission.CHECK_IN:
-                    check_in = CheckInService(connection, user)
-                    output = run_check_in_command(check_in, args)
-                    if args.check_in_action is None:
-                        output = f"{heading}\n{output}"
-                case Permission.CHECKER_ACCESS:
-                    check_in = CheckInService(connection, user)
-                    output = run_checker_access_command(check_in, args)
-                    if args.checker_access_action is None:
-                        output = f"{heading}\n{output}"
-                case _:
-                    events = EventService(connection, user)
-                    output = run_event_command(events, permission, args)
-                    if args.event_action is None:
-                        output = f"{heading}\n{output}"
+            try:
+                require_permission(user, permission)
+                output = _run_entry(connection, user, permission, args)
+            except (EventError, TicketError, RosterError, OSError):
+                audit_failed_command(connection, user, args)
+                raise
 
     print(output)
+
+
+def _run_entry(
+    connection: sqlite3.Connection,
+    user: User,
+    permission: Permission,
+    args: argparse.Namespace,
+) -> str:
+    match permission:
+        case Permission.REGISTRATIONS:
+            return run_registration_command(
+                RegistrationService(connection, user), args
+            )
+        case Permission.CHECK_IN:
+            check_in = CheckInService(connection, user)
+            output = run_check_in_command(check_in, args)
+            action = args.check_in_action
+        case Permission.CHECKER_ACCESS:
+            output = run_checker_access_command(
+                CheckInService(connection, user), args
+            )
+            action = args.checker_access_action
+        case Permission.ROSTERS:
+            output = run_roster_command(RosterService(connection, user), args)
+            action = args.roster_action
+        case Permission.AUDIT:
+            output = run_audit_command(connection, user, args)
+            action = None
+        case _:
+            events = EventService(connection, user)
+            output = run_event_command(events, permission, args)
+            action = args.event_action
+    if action is None:
+        heading = f"已进入「{ENTRY_NAMES[permission]}」。"
+        return f"{heading}\n{output}"
+    return output
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -161,6 +198,7 @@ def main(argv: list[str] | None = None) -> int:
         AuthenticationError,
         EventError,
         RegistrationError,
+        RosterError,
         TicketError,
         OSError,
         sqlite3.Error,

@@ -28,6 +28,13 @@ class RegistrationStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+STATUS_NAMES = {
+    RegistrationStatus.CONFIRMED: "报名成功",
+    RegistrationStatus.WAITLISTED: "候补中",
+    RegistrationStatus.CANCELLED: "已取消",
+}
+
+
 @dataclass(frozen=True, slots=True)
 class Registration:
     """参与者可查看的本人报名记录。"""
@@ -145,7 +152,7 @@ class RegistrationService:
             REGISTRATION_QUERY + " WHERE record.user_id = ? ORDER BY record.id"
         )
         rows = self.connection.execute(query, (self.user.id,))
-        return tuple(_registration(row) for row in rows)
+        return tuple(registration_from_row(row) for row in rows)
 
     def ticket(self, registration_id: int) -> Ticket:
         """读取本人报名关联的电子票。"""
@@ -199,7 +206,7 @@ class RegistrationService:
         ).fetchone()
         if row is None:
             raise RegistrationError(f"找不到本人报名记录 #{registration_id}。")
-        return _registration(row)
+        return registration_from_row(row)
 
     def _get_session(self, session_id: int) -> sqlite3.Row:
         row = self.connection.execute(
@@ -282,7 +289,7 @@ def _campus_only(eligibility: str) -> bool:
     raise RegistrationError("系统暂无法核验该活动的报名条件，请联系举办方。")
 
 
-def _registration(row: sqlite3.Row) -> Registration:
+def registration_from_row(row: sqlite3.Row) -> Registration:
     return Registration(
         id=row["id"],
         session_id=row["session_id"],

@@ -44,13 +44,15 @@ class CampusEventsCliTest(unittest.TestCase):
     def test_role_access_matrix(self) -> None:
         access = {
             "student": {"browse-events", "registrations"},
-            "organizer": {"browse-events", "manage-events"},
-            "admin": {"browse-events", "review-events", "checker-access"},
+            "organizer": {"browse-events", "manage-events", "rosters"},
+            "admin": {
+                "browse-events", "review-events", "checker-access", "audit",
+            },
             "checker": {"browse-events", "check-in"},
         }
         entries = (
             "browse-events", "manage-events", "review-events", "check-in",
-            "registrations", "checker-access",
+            "registrations", "checker-access", "rosters", "audit",
         )
         for username, allowed in access.items():
             for entry in entries:

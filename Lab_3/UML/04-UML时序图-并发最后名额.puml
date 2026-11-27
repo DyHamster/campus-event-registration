@@ -1,0 +1,26 @@
+@startuml
+!include _style.iuml
+title UML 时序图 · 最后一个名额
+hide footbox
+
+actor "参与者甲" as A
+actor "参与者乙" as B
+participant "报名进程甲" as RA
+participant "报名进程乙" as RB
+database "SQLite" as DB
+
+A -> RA : 提交报名
+RA -> DB : 开始写事务
+DB --> RA : 首先取得写入权
+B -> RB : 提交报名并同意候补
+RB -> DB : 请求写事务，等待
+
+RA -> DB : 校验资格，写入确认记录与电子票
+RA -> DB : 提交，释放写入权
+RA --> A : 报名成功
+
+DB --> RB : 取得写入权
+RB -> DB : 校验资格，发现已满，写入候补记录
+RB -> DB : 提交
+RB --> B : 进入候补
+@enduml

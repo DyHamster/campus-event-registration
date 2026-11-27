@@ -1,6 +1,6 @@
 # 校园活动票务与报名系统
 
-程序使用 Python 命令行和 SQLite。举办方创建活动、设置场次和票价并提交审核。平台管理员审核通过后，所有角色都可以查询公开活动。参与者可以报名、候补或取消，报名成功后可领取电子票，由获授权的检票员核验并签到。
+程序使用 Python 命令行和 SQLite。举办方创建活动并提交审核，也可以查看本人场次的统计和导出名单。平台管理员审核并发布活动，分配检票授权并查询操作日志。参与者报名成功后可领取电子票，由获授权的检票员核验并签到。
 
 在本文件所在的 `code` 目录执行下列命令。需要 Python 3.10 或更高版本和 Make。业务命令和按票码检票使用 Python 标准库，二维码图片导出和识别需要安装 [依赖](#电子票和检票)。
 
@@ -19,8 +19,8 @@ python3 -B -m campus_events login organizer
 | --- | --- | --- |
 | `student`、`student2`、`student3` | 校内参与者 | 公开活动、报名与候补、本人电子票 |
 | `visitor` | 校外参与者 | 公开活动、不限资格的报名与候补、本人电子票 |
-| `organizer` | 活动举办方 | 公开活动、活动管理 |
-| `admin` | 平台管理员 | 公开活动、活动审核、检票授权 |
+| `organizer` | 活动举办方 | 公开活动、活动管理、本人场次名单和统计 |
+| `admin` | 平台管理员 | 公开活动、活动审核、检票授权、操作日志 |
 | `checker` | 现场检票人员 | 公开活动、授权场次的检票签到 |
 
 给 `login` 传入功能名可直接验证访问权限。举办方可以进入活动管理，普通参与者会收到拒绝提示，命令以状态码 `1` 退出。
@@ -119,8 +119,48 @@ campus login student2 registrations list
 
 每个场次分别授权。管理员可以用 `checker-access list` 查看分配，用 `checker-access revoke 1 checker` 撤销授权。已发布活动的有效票可在授权场次核验。已签到的报名不能自行取消。举办方取消活动会作废所有电子票并保留历史签到。
 
+## 名单、容量统计和操作日志
+
+在上面的示例中，乙完成签到后，第一个场次有 1 个有效报名、1 个候补、1 条取消记录和 1 条签到记录。第二个场次仍有一个名额。继续使用同一演示库执行：
+
+```sh
+campus login organizer rosters list
+campus login organizer rosters stats 1
+campus login organizer rosters show 1 --search 乙 --status checked-in
+campus login organizer rosters export 1 data/roster.csv
+campus login organizer rosters export 1 data/signed-in.csv --status checked-in
+
+campus login admin audit --limit 10
+campus login admin audit --action roster.export
+campus login admin audit --action ticket.check-in --outcome duplicate
+```
+
+举办方只能访问自己活动的场次名单。导出采用带 BOM 的 UTF-8 CSV，默认包含各状态的报名，可按状态和姓名筛选。导出会保留已存在的同名文件。容量统计中的有效报名包含已签到人员，历史签到仍会显示在已取消活动的统计里。
+
+管理员可以按操作和结果查询日志。日志记录活动创建、修改、送审、审核与取消，以及检票授权、核验和名单导出的时间、操作者、目标编号和结果。核验失败和重复签到单独标记，日志省去票码、联系方式和导出文件路径。升级后从新操作开始记录。
+
+## 构建和打包
+
+```sh
+make build
+make test
+wc -l campus_events/*.py
+```
+
+`campus_events/` 是软件源码，`tests/` 是自动化测试。启用电子票图片依赖时，测试会覆盖 PNG 导出和识别。最终的四张 UML 图和对应的 PlantUML 源文件位于 [UML 目录](../UML/)。
+
+完成本人撰写的实验报告后，在本目录运行以下命令。打包工具会将报告、四组 UML 图片和源文件，以及源码、示例和构建说明放进同名目录，再压缩成 `实验3_241870097_丁瀚铭.zip`。
+
+```sh
+python3 -B tools/package_submission.py --report ../实验报告.pdf
+```
+
+默认输出到 `Lab_3`，可用 `--directory` 指定输出目录。打包只选取交付文件，排除运行数据库、二维码、导出的名单、构建缓存以及虚拟环境。
+
 ## 代码对应关系
 
 实验二类图的用户对应 `access.py` 中的 `User`。活动、场次和报名类别对应 `event_models.py` 中的 `Event`、`Session` 和 `RegistrationCategory`，分别存入 SQLite 的 `events`、`event_sessions` 和 `registration_categories` 表。`events.py` 负责状态变更和按角色限定查询范围。报名活动图和最后名额时序图的规则由 `registrations.py` 实现，报名记录和候补状态保存在 `registrations` 表中。
 
 电子票和签到分别由 `tickets.py` 和 `check_in.py` 管理。票据关联报名记录，签到记录关联票据，检票权限通过 `session_checkers` 关联账号和场次。
+
+`rosters.py` 按场次统计和导出报名数据。`audit.py` 中的 `AuditEntry` 对应 `audit_logs` 表。

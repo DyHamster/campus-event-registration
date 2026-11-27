@@ -1,0 +1,35 @@
+@startuml
+!include _style.iuml
+title UML 活动图 · 场次报名
+
+start
+:选场次和报名类别，提交资料;
+:取得 SQLite 写入权并记录接收时间;
+if (同场次已有有效报名或候补？) then (有)
+  :返回原记录;
+  stop
+else (无)
+endif
+if (活动已发布、未截止且符合资格？) then (是)
+else (否)
+  :拒绝并提示原因;
+  stop
+endif
+if (所选类别属于场次且资料齐全？) then (是)
+else (否)
+  :拒绝并提示原因;
+  stop
+endif
+if (场次有名额？) then (有)
+  :确认报名并在同一事务出票;
+else (无)
+  if (同意候补？) then (是)
+    :保存候补记录及接收顺序;
+  else (否)
+    :提示名额已满;
+    stop
+  endif
+endif
+:提交事务，返回结果;
+stop
+@enduml

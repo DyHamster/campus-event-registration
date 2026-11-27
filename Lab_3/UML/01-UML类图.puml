@@ -1,0 +1,68 @@
+@startuml
+!pragma layout smetana
+!include _style.iuml
+title UML 类图 · 校园活动报名与检票
+hide circle
+hide empty methods
+
+class "用户" as User {
+  账号
+  姓名
+  角色
+}
+
+class "活动" as Event {
+  名称与分类
+  发布状态
+  报名条件
+  审核意见
+}
+
+class "场次" as Session {
+  开始时间和地点
+  容量
+  报名截止时间
+}
+
+class "报名类别" as Category {
+  名称
+  票价（分）
+}
+
+class "报名记录" as Registration {
+  报名状态
+  接收顺序及时间
+  报名姓名及联系方式
+}
+
+class "电子票" as Ticket {
+  唯一票码
+  出票时间
+  作废时间
+}
+
+class "签到记录" as CheckIn {
+  首次签到时间
+  检票员账号
+}
+
+class "场次检票授权" as Assignment {
+  检票员账号
+}
+
+class "操作日志" as Audit {
+  操作与目标编号
+  结果和时间
+}
+
+User "1" -down- "0..*" Event : 举办
+Event "1" *-right- "0..*" Session : 包含
+Session "1" *-right- "0..*" Category : 设置
+User "1" -right- "0..*" Registration : 提交
+Session "1" -up- "0..*" Registration
+Category "1" -up- "0..*" Registration : 所选类别
+Registration "1" -right- "0..1" Ticket : 出票
+Ticket "1" -right- "0..1" CheckIn : 签到
+Session "1" -down- "0..*" Assignment
+User "1" -left- "0..*" Audit : 执行操作
+@enduml

@@ -1,0 +1,27 @@
+@startuml
+!pragma layout smetana
+!include _style.iuml
+title UML 组件图 · 校园活动票务与报名系统
+
+component "命令行入口\ncli.py" as CLI
+component "身份与角色权限\naccess.py" as Auth
+component "活动管理、审核与查询\nevents.py" as Event
+component "报名与候补\nregistrations.py" as Registration
+component "电子票、授权与检票\ntickets.py · check_in.py" as Ticket
+component "名单、导出与操作日志\nrosters.py · audit.py" as Report
+component "连接、事务与模式升级\ndatabase.py" as Data
+database "SQLite" as SQLite
+
+CLI --> Auth
+CLI --> Event
+CLI --> Registration
+CLI --> Ticket
+CLI --> Report
+Auth --> Data
+Event --> Data
+Registration --> Data
+Ticket --> Data
+Report --> Data
+Registration -right-> Ticket : 出票和作废
+Data --> SQLite
+@enduml

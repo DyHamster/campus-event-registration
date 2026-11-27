@@ -8,7 +8,7 @@ from typing import Iterator
 from .event_models import EventError
 from .tickets import backfill_tickets
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 @contextmanager
@@ -92,6 +92,20 @@ def create_schema(connection: sqlite3.Connection) -> None:
     )
     create_registration_schema(connection)
     create_ticket_schema(connection)
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id INTEGER PRIMARY KEY,
+            actor_id INTEGER NOT NULL REFERENCES users(id),
+            action TEXT NOT NULL,
+            target_id INTEGER,
+            outcome TEXT NOT NULL CHECK (
+                outcome IN ('success', 'rejected', 'duplicate')
+            ),
+            occurred_at TEXT NOT NULL
+        )
+        """
+    )
     if version < 4:
         backfill_tickets(connection)
     connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")

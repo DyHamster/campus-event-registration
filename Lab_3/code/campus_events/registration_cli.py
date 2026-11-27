@@ -6,17 +6,12 @@ from pathlib import Path
 from .cli_args import positive_id
 from .event_models import CAMPUS_TIME
 from .registrations import (
+    STATUS_NAMES,
     Registration,
     RegistrationService,
     RegistrationStatus,
 )
 from .ticket_cli import format_ticket
-
-STATUS_NAMES = {
-    RegistrationStatus.CONFIRMED: "报名成功",
-    RegistrationStatus.WAITLISTED: "候补中",
-    RegistrationStatus.CANCELLED: "已取消",
-}
 
 
 def add_registration_arguments(parser: argparse.ArgumentParser) -> None:

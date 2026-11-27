@@ -4,6 +4,7 @@ import sqlite3
 from datetime import datetime
 
 from .access import Permission, User, require_permission
+from .audit import AuditAction, record_audit
 from .event_models import (
     Event,
     EventDetail,
@@ -43,6 +44,9 @@ class EventService:
         )
         event_id = cursor.lastrowid
         self._save_sessions(event_id, draft.sessions)
+        record_audit(
+            self.connection, self.user, AuditAction.EVENT_CREATE, event_id
+        )
         return event_id
 
     def edit(self, event_id: int, draft: EventDraft) -> None:
@@ -67,6 +71,9 @@ class EventService:
             "DELETE FROM event_sessions WHERE event_id = ?", (event_id,)
         )
         self._save_sessions(event_id, draft.sessions)
+        record_audit(
+            self.connection, self.user, AuditAction.EVENT_EDIT, event_id
+        )
 
     def submit(self, event_id: int) -> None:
         """将资料齐全的草稿或驳回活动送审。"""
@@ -83,6 +90,9 @@ class EventService:
                 raise EventError(f"场次「{session.name}」至少需要一个报名类别。")
 
         self._set_status(event, EventStatus.PENDING, note="")
+        record_audit(
+            self.connection, self.user, AuditAction.EVENT_SUBMIT, event_id
+        )
 
     def cancel(self, event_id: int) -> None:
         """取消自己的活动并保留记录。"""
@@ -102,12 +112,18 @@ class EventService:
         )
         void_event_tickets(self.connection, event_id)
         self._set_status(event, EventStatus.CANCELLED, note=event.review_note)
+        record_audit(
+            self.connection, self.user, AuditAction.EVENT_CANCEL, event_id
+        )
 
     def approve(self, event_id: int) -> None:
         """通过待审活动并立即发布。"""
         self.connection.execute("BEGIN IMMEDIATE")
         event = self._get_event(Permission.REVIEW_EVENTS, event_id)
         self._set_status(event, EventStatus.PUBLISHED, note="")
+        record_audit(
+            self.connection, self.user, AuditAction.EVENT_APPROVE, event_id
+        )
 
     def reject(self, event_id: int, reason: str) -> None:
         """驳回待审活动，向举办方保留原因。"""
@@ -117,6 +133,9 @@ class EventService:
         if not reason:
             raise EventError("请填写驳回原因。")
         self._set_status(event, EventStatus.REJECTED, note=reason)
+        record_audit(
+            self.connection, self.user, AuditAction.EVENT_REJECT, event_id
+        )
 
     def list_events(
         self,

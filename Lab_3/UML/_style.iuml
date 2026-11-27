@@ -1,0 +1,47 @@
+skinparam dpi 160
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "PingFang SC"
+skinparam defaultFontSize 15
+skinparam defaultFontColor #242424
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #4A4A4A
+skinparam ArrowThickness 1
+skinparam ArrowFontSize 13
+skinparam TitleFontColor #181818
+skinparam TitleFontSize 22
+skinparam TitleFontStyle bold
+
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #FAFAFA
+skinparam classHeaderBackgroundColor #E9E9E9
+skinparam classBorderColor #777777
+skinparam classFontColor #181818
+skinparam classFontStyle bold
+
+skinparam rectangleBackgroundColor #FAFAFA
+skinparam rectangleBorderColor #B0B0B0
+skinparam rectangleFontColor #181818
+skinparam rectangleFontStyle bold
+skinparam componentBackgroundColor #FFFFFF
+skinparam componentBorderColor #858585
+skinparam componentFontColor #181818
+skinparam databaseBackgroundColor #F1F1F1
+skinparam databaseBorderColor #858585
+
+skinparam activityBackgroundColor #F6F6F6
+skinparam activityBorderColor #777777
+skinparam activityDiamondBackgroundColor #FFFFFF
+skinparam activityDiamondBorderColor #777777
+skinparam activityStartColor #242424
+skinparam activityEndColor #242424
+
+skinparam sequenceParticipantBackgroundColor #EEEEEE
+skinparam sequenceParticipantBorderColor #777777
+skinparam sequenceParticipantFontColor #181818
+skinparam sequenceLifeLineBorderColor #A0A0A0
+skinparam sequenceGroupBackgroundColor #F3F3F3
+skinparam sequenceGroupBorderColor #8F8F8F
+skinparam sequenceGroupHeaderFontColor #181818
+skinparam actorBackgroundColor #EEEEEE
+skinparam actorBorderColor #777777

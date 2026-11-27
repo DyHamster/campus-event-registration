@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from .access import Permission, Role, User, require_permission
+from .audit import AuditAction, AuditOutcome, record_audit
 from .event_models import EventStatus
 from .tickets import TicketError, utc_now
 
@@ -72,6 +73,9 @@ class CheckInService:
             """,
             (checker_id, session_id),
         )
+        record_audit(
+            self.connection, self.user, AuditAction.CHECKER_GRANT, session_id
+        )
 
     def revoke(self, session_id: int, checker_username: str) -> None:
         """撤销指定场次的检票授权。"""
@@ -84,6 +88,9 @@ class CheckInService:
             WHERE checker_id = ? AND session_id = ?
             """,
             (checker_id, session_id),
+        )
+        record_audit(
+            self.connection, self.user, AuditAction.CHECKER_REVOKE, session_id
         )
 
     def list_assignments(self) -> tuple[CheckerAssignment, ...]:
@@ -154,6 +161,11 @@ class CheckInService:
                 """,
                 (ticket["id"], self.user.id, checked_at.isoformat()),
             )
+        outcome = AuditOutcome.DUPLICATE if duplicate else AuditOutcome.SUCCESS
+        record_audit(
+            self.connection, self.user, AuditAction.CHECK_IN, session_id,
+            outcome=outcome,
+        )
         return CheckInResult(
             session_id=session_id,
             registration_id=ticket["registration_id"],
