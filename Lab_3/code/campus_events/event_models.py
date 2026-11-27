@@ -41,6 +41,7 @@ class Session:
     registration_deadline: datetime
     categories: tuple[RegistrationCategory, ...]
     id: int | None = None
+    confirmed_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)

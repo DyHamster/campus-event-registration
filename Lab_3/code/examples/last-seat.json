@@ -1,0 +1,27 @@
+{
+  "name": "校园摄影工作坊",
+  "kind": "讲座",
+  "eligibility": "校内师生",
+  "sessions": [
+    {
+      "name": "午后场",
+      "starts_at": "2027-03-14T14:00:00+08:00",
+      "location": "教学楼 A101",
+      "capacity": 1,
+      "registration_deadline": "2027-03-14T12:00:00+08:00",
+      "categories": [
+        {"name": "旁听", "price_cents": 0}
+      ]
+    },
+    {
+      "name": "傍晚场",
+      "starts_at": "2027-03-14T17:00:00+08:00",
+      "location": "教学楼 A202",
+      "capacity": 1,
+      "registration_deadline": "2027-03-14T15:00:00+08:00",
+      "categories": [
+        {"name": "旁听", "price_cents": 0}
+      ]
+    }
+  ]
+}

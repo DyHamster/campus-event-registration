@@ -7,7 +7,7 @@ from typing import Iterator
 
 from .event_models import EventError
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 @contextmanager
@@ -89,7 +89,62 @@ def create_schema(connection: sqlite3.Connection) -> None:
         )
         """
     )
+    create_registration_schema(connection)
     connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+
+
+def create_registration_schema(connection: sqlite3.Connection) -> None:
+    """增加报名及资格数据，旧版活动与用户记录可直接复用。"""
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS campus_memberships (
+            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS category_session_identity
+        ON registration_categories (id, session_id)
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS registrations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            session_id INTEGER NOT NULL REFERENCES event_sessions(id),
+            category_id INTEGER NOT NULL,
+            participant_name TEXT NOT NULL,
+            contact TEXT NOT NULL,
+            received_at TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (
+                status IN ('confirmed', 'waitlisted', 'cancelled')
+            ),
+            FOREIGN KEY (category_id, session_id)
+                REFERENCES registration_categories (id, session_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS one_active_registration
+        ON registrations (user_id, session_id)
+        WHERE status IN ('confirmed', 'waitlisted')
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS registrations_by_session
+        ON registrations (session_id, status, id)
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS registrations_by_user
+        ON registrations (user_id, id)
+        """
+    )
 
 
 def require_current_schema(connection: sqlite3.Connection) -> None:

@@ -89,6 +89,16 @@ class EventService:
         event = self._get_event(Permission.MANAGE_EVENTS, event_id)
         if event.status is EventStatus.CANCELLED:
             raise EventError("该活动已经取消。")
+        self.connection.execute(
+            """
+            UPDATE registrations SET status = 'cancelled'
+            WHERE status IN ('confirmed', 'waitlisted')
+              AND session_id IN (
+                  SELECT id FROM event_sessions WHERE event_id = ?
+              )
+            """,
+            (event_id,),
+        )
         self._set_status(event, EventStatus.CANCELLED, note=event.review_note)
 
     def approve(self, event_id: int) -> None:
@@ -179,9 +189,13 @@ class EventService:
 
         rows = self.connection.execute(
             """
-            SELECT * FROM event_sessions
-            WHERE event_id = ?
-            ORDER BY starts_at, id
+            SELECT session.*, (
+                SELECT COUNT(*) FROM registrations
+                WHERE session_id = session.id AND status = 'confirmed'
+            ) AS confirmed_count
+            FROM event_sessions AS session
+            WHERE session.event_id = ?
+            ORDER BY session.starts_at, session.id
             """,
             (event_id,),
         )
@@ -196,6 +210,7 @@ class EventService:
                 ),
                 categories=tuple(categories.get(row["id"], ())),
                 id=row["id"],
+                confirmed_count=row["confirmed_count"],
             )
             for row in rows
         )

@@ -20,6 +20,11 @@ from .demo import seed_demo_accounts
 from .event_cli import add_event_arguments, run_event_command
 from .event_models import EventError
 from .events import EventService
+from .registration_cli import (
+    add_registration_arguments,
+    run_registration_command,
+)
+from .registrations import RegistrationError, RegistrationService
 
 DEFAULT_DATABASE = Path("data/campus_events.sqlite3")
 ROLE_NAMES = {
@@ -33,6 +38,7 @@ ENTRY_NAMES = {
     Permission.MANAGE_EVENTS: "活动管理",
     Permission.REVIEW_EVENTS: "活动审核",
     Permission.CHECK_IN: "检票签到",
+    Permission.REGISTRATIONS: "报名与候补",
 }
 
 
@@ -50,14 +56,16 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
 
     init = commands.add_parser("init", help="初始化数据库")
-    init.add_argument("--demo", action="store_true", help="添加四类本地演示账号")
+    init.add_argument("--demo", action="store_true", help="添加本地演示账号")
 
     login = commands.add_parser("login", help="登录并查看或进入业务功能")
     login.add_argument("username", help="账号名")
     entries = login.add_subparsers(dest="entry", help="要进入的功能")
     for permission, name in ENTRY_NAMES.items():
         entry = entries.add_parser(permission.value, help=name)
-        if permission is not Permission.CHECK_IN:
+        if permission is Permission.REGISTRATIONS:
+            add_registration_arguments(entry)
+        elif permission is not Permission.CHECK_IN:
             add_event_arguments(entry, permission)
     return parser
 
@@ -102,10 +110,14 @@ def login(args: argparse.Namespace) -> None:
                 output = heading
             else:
                 require_current_schema(connection)
-                service = EventService(connection, user)
-                output = run_event_command(service, permission, args)
-                if args.event_action is None:
-                    output = f"{heading}\n{output}"
+                if permission is Permission.REGISTRATIONS:
+                    registrations = RegistrationService(connection, user)
+                    output = run_registration_command(registrations, args)
+                else:
+                    events = EventService(connection, user)
+                    output = run_event_command(events, permission, args)
+                    if args.event_action is None:
+                        output = f"{heading}\n{output}"
 
     print(output)
 
@@ -124,7 +136,13 @@ def main(argv: list[str] | None = None) -> int:
     except (KeyboardInterrupt, EOFError):
         print("\n操作已取消。", file=sys.stderr)
         return 130
-    except (AuthenticationError, EventError, OSError, sqlite3.Error) as error:
+    except (
+        AuthenticationError,
+        EventError,
+        RegistrationError,
+        OSError,
+        sqlite3.Error,
+    ) as error:
         print(f"操作失败：{error}", file=sys.stderr)
         return 1
     return 0

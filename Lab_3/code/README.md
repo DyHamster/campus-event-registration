@@ -1,6 +1,6 @@
 # 校园活动票务与报名系统
 
-程序使用 Python 命令行和 SQLite。举办方创建活动、设置场次和票价并提交审核。平台管理员审核通过后，所有角色都可以查询公开活动。
+程序使用 Python 命令行和 SQLite。举办方创建活动、设置场次和票价并提交审核。平台管理员审核通过后，所有角色都可以查询公开活动，参与者可以报名、候补或取消。
 
 在本文件所在的 `code` 目录执行下列命令。需要 Python 3.10 或更高版本和 Make。程序使用 Python 标准库。
 
@@ -11,13 +11,14 @@ python3 -B -m campus_events init --demo
 python3 -B -m campus_events login organizer
 ```
 
-`make build` 将程序编译为 Python 字节码，产物位于 `build/pycache/`。默认数据库位于 `data/campus_events.sqlite3`。运行 `init` 会创建或升级数据库表，加上 `--demo` 会添加缺失的演示账号。已有第一阶段数据库可直接执行 `python3 -B -m campus_events init` 升级，账号和密码会保留。
+`make build` 将程序编译为 Python 字节码，产物位于 `build/pycache/`。默认数据库位于 `data/campus_events.sqlite3`。运行 `init` 会创建或升级数据库表，保留已有账号、密码和活动。在旧演示库上执行 `init --demo` 会补齐新增参与者，并为仍使用原演示凭据的校内账号补上演示资格。
 
-四个演示账号共用本地演示密码 `campus-demo`。请在终端密码提示后输入。
+以下账号共用本地演示密码 `campus-demo`。请在终端密码提示后输入。
 
 | 账号 | 角色 | 可访问的功能 |
 | --- | --- | --- |
-| `student` | 普通参与者 | 公开活动 |
+| `student`、`student2`、`student3` | 校内参与者 | 公开活动、报名与候补 |
+| `visitor` | 校外参与者 | 公开活动、不限资格的报名与候补 |
 | `organizer` | 活动举办方 | 公开活动、活动管理 |
 | `admin` | 平台管理员 | 公开活动、活动审核 |
 | `checker` | 现场检票人员 | 公开活动、检票签到入口 |
@@ -59,6 +60,33 @@ campus login student browse-events list
 
 场次需要名称、地点、正整数容量、开始时间和报名截止时间。时间填写带时区的 ISO 8601 格式，截止时间须早于开始时间。报名类别的 `price_cents` 以分为单位，免费填写 `0`。例如示例中的 `1250` 在详情中显示为 ¥12.50。
 
+## 演示最后一个名额和候补递补
+
+示例活动的两个场次各有一个名额。下面使用一份新数据库。若你复用已有数据库，请以公开详情显示的场次编号和报名类别编号替换示例参数，并以取消对象对应的报名记录编号为准。
+
+```sh
+campus() { python3 -B -m campus_events --database data/stage3-demo.sqlite3 "$@"; }
+
+campus init --demo
+campus login organizer manage-events create examples/last-seat.json
+campus login organizer manage-events submit 1
+campus login admin review-events approve 1
+campus login student browse-events show 1
+
+campus login student registrations apply 1 1 --name 甲 --contact a@example.com
+campus login student2 registrations apply 1 1 --name 乙 --contact b@example.com --waitlist
+campus login student3 registrations apply 1 1 --name 丙 --contact c@example.com --waitlist
+campus login student registrations cancel 1
+campus login student2 registrations list
+campus login student3 registrations list
+```
+
+甲取消后，乙的原候补记录转为报名成功，丙变为候补第 1 位。第二场的名额保持独立。满额时由参与者通过 `--waitlist` 表示愿意候补。
+
+报名条件支持空值或「不限」，也支持根据数据库身份核验「校内师生」。旧活动的其他条件仍显示在详情中，系统会拒绝自动核验不了的报名。
+
+同一用户在同一场次重复提交时，系统返回有效的原记录。报名事务取得 SQLite 写入权时视为系统收到申请，使用当时的时间判断是否截止，并用数据库分配的报名编号记录先后。截止时刻起停止接收新报名或候补。参与者可以在场次开始前取消，截止前已入队的合格候补仍可递补。举办方取消整个活动时，已有报名和候补一并取消。
+
 ## 代码对应关系
 
-实验二类图的用户对应 `access.py` 中的 `User`。活动、场次和报名类别对应 `event_models.py` 中的 `Event`、`Session` 和 `RegistrationCategory`，分别存入 SQLite 的 `events`、`event_sessions` 和 `registration_categories` 表。`events.py` 负责状态变更和按角色限定查询范围。
+实验二类图的用户对应 `access.py` 中的 `User`。活动、场次和报名类别对应 `event_models.py` 中的 `Event`、`Session` 和 `RegistrationCategory`，分别存入 SQLite 的 `events`、`event_sessions` 和 `registration_categories` 表。`events.py` 负责状态变更和按角色限定查询范围。报名活动图和最后名额时序图的规则由 `registrations.py` 实现，报名记录和候补状态保存在 `registrations` 表中。

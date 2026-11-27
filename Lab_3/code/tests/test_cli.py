@@ -43,13 +43,14 @@ class CampusEventsCliTest(unittest.TestCase):
 
     def test_role_access_matrix(self) -> None:
         access = {
-            "student": {"browse-events"},
+            "student": {"browse-events", "registrations"},
             "organizer": {"browse-events", "manage-events"},
             "admin": {"browse-events", "review-events"},
             "checker": {"browse-events", "check-in"},
         }
         entries = (
-            "browse-events", "manage-events", "review-events", "check-in"
+            "browse-events", "manage-events", "review-events", "check-in",
+            "registrations",
         )
         for username, allowed in access.items():
             for entry in entries:
@@ -59,7 +60,10 @@ class CampusEventsCliTest(unittest.TestCase):
                     )
                     if entry in allowed:
                         self.assertEqual(code, 0)
-                        self.assertIn("已进入", stdout)
+                        message = (
+                            "暂无报名记录" if entry == "registrations" else "已进入"
+                        )
+                        self.assertIn(message, stdout)
                         self.assertEqual(stderr, "")
                     else:
                         self.assertEqual(code, 1)
@@ -84,7 +88,7 @@ class CampusEventsCliTest(unittest.TestCase):
 
         self.assertEqual(code, 0)
         self.assertIn("新增演示账号 0 个", stdout)
-        self.assertEqual(len(after), 4)
+        self.assertEqual(len(after), 7)
         self.assertEqual(before, after)
 
     def test_plain_initialization_does_not_add_demo_users(self) -> None:

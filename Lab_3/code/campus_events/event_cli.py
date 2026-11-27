@@ -4,7 +4,8 @@ import argparse
 from pathlib import Path
 
 from .access import Permission
-from .event_input import SQLITE_MAX_INTEGER, read_draft
+from .cli_args import positive_id
+from .event_input import read_draft
 from .event_models import CAMPUS_TIME, Event, EventDetail, EventStatus
 from .events import EventService
 
@@ -25,7 +26,7 @@ def add_event_arguments(
     actions = parser.add_subparsers(dest="event_action")
     list_command = actions.add_parser("list", help="列出活动")
     show = actions.add_parser("show", help="查看活动及其场次")
-    show.add_argument("event_id", type=_event_id, help="活动编号")
+    show.add_argument("event_id", type=positive_id, help="活动编号")
 
     if permission is Permission.BROWSE_EVENTS:
         list_command.add_argument("--search", help="按活动名称搜索")
@@ -34,17 +35,17 @@ def add_event_arguments(
         create = actions.add_parser("create", help="从 JSON 创建活动草稿")
         create.add_argument("file", type=Path, help="活动配置文件")
         edit = actions.add_parser("edit", help="从 JSON 更新活动草稿")
-        edit.add_argument("event_id", type=_event_id, help="活动编号")
+        edit.add_argument("event_id", type=positive_id, help="活动编号")
         edit.add_argument("file", type=Path, help="活动配置文件")
         submit = actions.add_parser("submit", help="提交活动审核")
-        submit.add_argument("event_id", type=_event_id, help="活动编号")
+        submit.add_argument("event_id", type=positive_id, help="活动编号")
         cancel = actions.add_parser("cancel", help="取消活动")
-        cancel.add_argument("event_id", type=_event_id, help="活动编号")
+        cancel.add_argument("event_id", type=positive_id, help="活动编号")
     elif permission is Permission.REVIEW_EVENTS:
         approve = actions.add_parser("approve", help="通过审核并发布活动")
-        approve.add_argument("event_id", type=_event_id, help="活动编号")
+        approve.add_argument("event_id", type=positive_id, help="活动编号")
         reject = actions.add_parser("reject", help="驳回活动")
-        reject.add_argument("event_id", type=_event_id, help="活动编号")
+        reject.add_argument("event_id", type=positive_id, help="活动编号")
         reject.add_argument("--reason", required=True, help="驳回原因")
 
 
@@ -82,16 +83,6 @@ def run_event_command(
             raise ValueError("unsupported event command")
 
 
-def _event_id(value: str) -> int:
-    try:
-        number = int(value)
-    except ValueError as error:
-        raise argparse.ArgumentTypeError("活动编号必须是正整数。") from error
-    if not 0 < number <= SQLITE_MAX_INTEGER:
-        raise argparse.ArgumentTypeError("活动编号超出允许范围。")
-    return number
-
-
 def _event_line(event: Event) -> str:
     status = STATUS_NAMES[event.status]
     return f"#{event.id} {event.name} · {event.kind} · {status}"
@@ -119,6 +110,7 @@ def _detail_text(detail: EventDetail) -> str:
                 f"    时间：{start.isoformat(sep=' ')}",
                 f"    地点：{session.location}",
                 f"    容量：{session.capacity} 人",
+                f"    剩余名额：{session.capacity - session.confirmed_count} 人",
                 f"    报名截止：{deadline.isoformat(sep=' ')}",
             ]
         )

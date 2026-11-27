@@ -23,6 +23,7 @@ class Permission(str, Enum):
     MANAGE_EVENTS = "manage-events"
     REVIEW_EVENTS = "review-events"
     CHECK_IN = "check-in"
+    REGISTRATIONS = "registrations"
 
 
 PERMITTED_ROLES = {
@@ -30,6 +31,7 @@ PERMITTED_ROLES = {
     Permission.MANAGE_EVENTS: frozenset({Role.ORGANIZER}),
     Permission.REVIEW_EVENTS: frozenset({Role.ADMIN}),
     Permission.CHECK_IN: frozenset({Role.CHECKER}),
+    Permission.REGISTRATIONS: frozenset({Role.PARTICIPANT}),
 }
 
 
