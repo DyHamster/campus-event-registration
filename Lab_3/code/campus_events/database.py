@@ -6,8 +6,9 @@ from pathlib import Path
 from typing import Iterator
 
 from .event_models import EventError
+from .tickets import backfill_tickets
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 @contextmanager
@@ -90,6 +91,9 @@ def create_schema(connection: sqlite3.Connection) -> None:
         """
     )
     create_registration_schema(connection)
+    create_ticket_schema(connection)
+    if version < 4:
+        backfill_tickets(connection)
     connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 
@@ -143,6 +147,41 @@ def create_registration_schema(connection: sqlite3.Connection) -> None:
         """
         CREATE INDEX IF NOT EXISTS registrations_by_user
         ON registrations (user_id, id)
+        """
+    )
+
+
+def create_ticket_schema(connection: sqlite3.Connection) -> None:
+    """每条确认报名最多有一张票，每张票最多签到一次。"""
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS tickets (
+            id INTEGER PRIMARY KEY,
+            registration_id INTEGER NOT NULL UNIQUE
+                REFERENCES registrations(id),
+            code TEXT NOT NULL UNIQUE,
+            issued_at TEXT NOT NULL,
+            voided_at TEXT
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS session_checkers (
+            checker_id INTEGER NOT NULL REFERENCES users(id),
+            session_id INTEGER NOT NULL
+                REFERENCES event_sessions(id) ON DELETE CASCADE,
+            PRIMARY KEY (checker_id, session_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS check_ins (
+            ticket_id INTEGER PRIMARY KEY REFERENCES tickets(id),
+            checker_id INTEGER NOT NULL REFERENCES users(id),
+            checked_at TEXT NOT NULL
+        )
         """
     )
 

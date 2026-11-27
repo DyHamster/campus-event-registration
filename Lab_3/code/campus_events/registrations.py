@@ -7,6 +7,13 @@ from enum import Enum
 
 from .access import Permission, User, require_permission
 from .event_models import EventStatus
+from .tickets import (
+    Ticket,
+    issue_ticket,
+    owned_ticket,
+    parse_optional_time,
+    void_ticket,
+)
 
 
 class RegistrationError(Exception):
@@ -36,6 +43,7 @@ class Registration:
     received_at: datetime
     status: RegistrationStatus
     waitlist_position: int | None
+    checked_at: datetime | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,7 +56,7 @@ class ApplicationResult:
 
 REGISTRATION_QUERY = """
     SELECT record.*, event.name AS event_name, session.name AS session_name,
-           category.name AS category_name,
+           category.name AS category_name, check_in.checked_at,
            CASE WHEN record.status = 'waitlisted' THEN 1 + (
                SELECT COUNT(*) FROM registrations AS earlier
                WHERE earlier.session_id = record.session_id
@@ -60,6 +68,8 @@ REGISTRATION_QUERY = """
     JOIN events AS event ON event.id = session.event_id
     JOIN registration_categories AS category
         ON category.id = record.category_id
+    LEFT JOIN tickets AS ticket ON ticket.registration_id = record.id
+    LEFT JOIN check_ins AS check_in ON check_in.ticket_id = ticket.id
 """
 
 
@@ -122,7 +132,10 @@ class RegistrationService:
                 received_at.isoformat(), status.value,
             ),
         )
-        record = self._get_owned(cursor.lastrowid)
+        registration_id = cursor.lastrowid
+        if status is RegistrationStatus.CONFIRMED:
+            issue_ticket(self.connection, registration_id, received_at)
+        record = self._get_owned(registration_id)
         return ApplicationResult(record, existing=False)
 
     def list_owned(self) -> tuple[Registration, ...]:
@@ -134,6 +147,10 @@ class RegistrationService:
         rows = self.connection.execute(query, (self.user.id,))
         return tuple(_registration(row) for row in rows)
 
+    def ticket(self, registration_id: int) -> Ticket:
+        """读取本人报名关联的电子票。"""
+        return owned_ticket(self.connection, self.user, registration_id)
+
     def cancel(self, registration_id: int) -> None:
         """取消本人报名或候补，在有空位时递补一位合格参与者。"""
         require_permission(self.user, Permission.REGISTRATIONS)
@@ -141,21 +158,27 @@ class RegistrationService:
         registration = self._get_owned(registration_id)
         if registration.status is RegistrationStatus.CANCELLED:
             return
+        if registration.checked_at is not None:
+            raise RegistrationError("该报名已签到，无法取消。")
 
         session = self._get_session(registration.session_id)
-        if utc_now() >= datetime.fromisoformat(session["starts_at"]):
+        cancelled_at = utc_now()
+        if cancelled_at >= datetime.fromisoformat(session["starts_at"]):
             raise RegistrationError("场次已开始，无法取消报名。")
 
         self.connection.execute(
             "UPDATE registrations SET status = 'cancelled' WHERE id = ?",
             (registration_id,),
         )
+        void_ticket(self.connection, registration_id, cancelled_at)
         if (
             registration.status is RegistrationStatus.CONFIRMED
             and session["event_status"] == EventStatus.PUBLISHED.value
         ):
             self._promote_next(
-                registration.session_id, _campus_only(session["eligibility"])
+                registration.session_id,
+                _campus_only(session["eligibility"]),
+                issued_at=cancelled_at,
             )
 
     def _active_registration_id(self, session_id: int) -> int | None:
@@ -221,7 +244,9 @@ class RegistrationService:
             (session_id,),
         ).fetchone()[0]
 
-    def _promote_next(self, session_id: int, campus_only: bool) -> None:
+    def _promote_next(
+        self, session_id: int, campus_only: bool, *, issued_at: datetime
+    ) -> None:
         candidate = self.connection.execute(
             """
             SELECT record.id
@@ -240,6 +265,7 @@ class RegistrationService:
                 "UPDATE registrations SET status = 'confirmed' WHERE id = ?",
                 (candidate["id"],),
             )
+            issue_ticket(self.connection, candidate["id"], issued_at)
 
 
 def utc_now() -> datetime:
@@ -269,4 +295,5 @@ def _registration(row: sqlite3.Row) -> Registration:
         received_at=datetime.fromisoformat(row["received_at"]),
         status=RegistrationStatus(row["status"]),
         waitlist_position=row["waitlist_position"],
+        checked_at=parse_optional_time(row["checked_at"]),
     )

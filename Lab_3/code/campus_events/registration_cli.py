@@ -1,6 +1,7 @@
 """报名与候补命令的参数和显示。"""
 
 import argparse
+from pathlib import Path
 
 from .cli_args import positive_id
 from .event_models import CAMPUS_TIME
@@ -9,6 +10,7 @@ from .registrations import (
     RegistrationService,
     RegistrationStatus,
 )
+from .ticket_cli import format_ticket
 
 STATUS_NAMES = {
     RegistrationStatus.CONFIRMED: "报名成功",
@@ -31,6 +33,9 @@ def add_registration_arguments(parser: argparse.ArgumentParser) -> None:
     )
     cancel = actions.add_parser("cancel", help="取消本人报名或候补")
     cancel.add_argument("registration_id", type=positive_id, help="报名记录编号")
+    ticket = actions.add_parser("ticket", help="查看或导出本人电子票")
+    ticket.add_argument("registration_id", type=positive_id, help="报名记录编号")
+    ticket.add_argument("--qr", type=Path, help="导出的 PNG 二维码路径")
 
 
 def run_registration_command(
@@ -56,6 +61,8 @@ def run_registration_command(
         case "cancel":
             service.cancel(args.registration_id)
             return f"报名记录 #{args.registration_id} 已取消。"
+        case "ticket":
+            return format_ticket(service.ticket(args.registration_id), args.qr)
         case _:
             raise ValueError("unsupported registration command")
 
@@ -64,6 +71,8 @@ def _format_record(record: Registration) -> str:
     status = STATUS_NAMES[record.status]
     if record.waitlist_position is not None:
         status += f"（第 {record.waitlist_position} 位）"
+    if record.status is RegistrationStatus.CONFIRMED and record.checked_at:
+        status = "已签到"
     received = record.received_at.astimezone(CAMPUS_TIME)
     return (
         f"#{record.id} {status} · {record.event_name}\n"

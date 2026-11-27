@@ -13,6 +13,7 @@ from .event_models import (
     RegistrationCategory,
     Session,
 )
+from .tickets import void_event_tickets
 
 EDITABLE = frozenset({EventStatus.DRAFT, EventStatus.REJECTED})
 
@@ -99,6 +100,7 @@ class EventService:
             """,
             (event_id,),
         )
+        void_event_tickets(self.connection, event_id)
         self._set_status(event, EventStatus.CANCELLED, note=event.review_note)
 
     def approve(self, event_id: int) -> None:

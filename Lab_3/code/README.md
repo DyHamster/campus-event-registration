@@ -1,8 +1,8 @@
 # 校园活动票务与报名系统
 
-程序使用 Python 命令行和 SQLite。举办方创建活动、设置场次和票价并提交审核。平台管理员审核通过后，所有角色都可以查询公开活动，参与者可以报名、候补或取消。
+程序使用 Python 命令行和 SQLite。举办方创建活动、设置场次和票价并提交审核。平台管理员审核通过后，所有角色都可以查询公开活动。参与者可以报名、候补或取消，报名成功后可领取电子票，由获授权的检票员核验并签到。
 
-在本文件所在的 `code` 目录执行下列命令。需要 Python 3.10 或更高版本和 Make。程序使用 Python 标准库。
+在本文件所在的 `code` 目录执行下列命令。需要 Python 3.10 或更高版本和 Make。业务命令和按票码检票使用 Python 标准库，二维码图片导出和识别需要安装 [依赖](#电子票和检票)。
 
 ```sh
 make build
@@ -17,11 +17,11 @@ python3 -B -m campus_events login organizer
 
 | 账号 | 角色 | 可访问的功能 |
 | --- | --- | --- |
-| `student`、`student2`、`student3` | 校内参与者 | 公开活动、报名与候补 |
-| `visitor` | 校外参与者 | 公开活动、不限资格的报名与候补 |
+| `student`、`student2`、`student3` | 校内参与者 | 公开活动、报名与候补、本人电子票 |
+| `visitor` | 校外参与者 | 公开活动、不限资格的报名与候补、本人电子票 |
 | `organizer` | 活动举办方 | 公开活动、活动管理 |
-| `admin` | 平台管理员 | 公开活动、活动审核 |
-| `checker` | 现场检票人员 | 公开活动、检票签到入口 |
+| `admin` | 平台管理员 | 公开活动、活动审核、检票授权 |
+| `checker` | 现场检票人员 | 公开活动、授权场次的检票签到 |
 
 给 `login` 传入功能名可直接验证访问权限。举办方可以进入活动管理，普通参与者会收到拒绝提示，命令以状态码 `1` 退出。
 
@@ -87,6 +87,40 @@ campus login student3 registrations list
 
 同一用户在同一场次重复提交时，系统返回有效的原记录。报名事务取得 SQLite 写入权时视为系统收到申请，使用当时的时间判断是否截止，并用数据库分配的报名编号记录先后。截止时刻起停止接收新报名或候补。参与者可以在场次开始前取消，截止前已入队的合格候补仍可递补。举办方取消整个活动时，已有报名和候补一并取消。
 
+## 电子票和检票
+
+报名成功或候补转正时会自动出票，每条报名最多对应一张票。旧版数据库升级时，`init` 会为已发布活动中仍有效的报名补发电子票，保留已有报名编号。
+
+导出或识别二维码图片前，先在虚拟环境中安装依赖。使用该虚拟环境运行 `make test` 也会执行二维码图片的集成测试。
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+```
+
+用新的演示库按上一节创建活动、发布并完成甲乙丙的报名，先停在甲取消之前。使用同一个 `campus` 函数继续。这里活动、场次和报名编号取自新库示例，复用已有库时请以程序显示的编号为准。
+
+```sh
+campus login student registrations ticket 1 --qr data/original.png
+campus login student registrations cancel 1
+campus login student2 registrations ticket 2 --qr data/promoted.png
+campus login admin checker-access grant 1 checker
+campus login checker check-in list
+
+# 原票被作废，新票可以签到，重复核验返回首次签到时间。
+campus login checker check-in verify 1 --qr data/original.png
+campus login checker check-in verify 1 --qr data/promoted.png
+campus login checker check-in verify 1 --qr data/promoted.png
+campus login student2 registrations list
+```
+
+`ticket` 省略 `--qr` 时，终端显示电子票信息和票码。核验命令 `check-in verify 1` 可以接收扫码枪输入或手动粘贴的票码，也可以通过 `--qr 路径` 读取 PNG 或 JPEG 图片。每张票只记录首次签到，参与者可以在自己的报名列表中查看签到状态。
+
+每个场次分别授权。管理员可以用 `checker-access list` 查看分配，用 `checker-access revoke 1 checker` 撤销授权。已发布活动的有效票可在授权场次核验。已签到的报名不能自行取消。举办方取消活动会作废所有电子票并保留历史签到。
+
 ## 代码对应关系
 
 实验二类图的用户对应 `access.py` 中的 `User`。活动、场次和报名类别对应 `event_models.py` 中的 `Event`、`Session` 和 `RegistrationCategory`，分别存入 SQLite 的 `events`、`event_sessions` 和 `registration_categories` 表。`events.py` 负责状态变更和按角色限定查询范围。报名活动图和最后名额时序图的规则由 `registrations.py` 实现，报名记录和候补状态保存在 `registrations` 表中。
+
+电子票和签到分别由 `tickets.py` 和 `check_in.py` 管理。票据关联报名记录，签到记录关联票据，检票权限通过 `session_checkers` 关联账号和场次。

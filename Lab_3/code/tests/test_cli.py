@@ -45,12 +45,12 @@ class CampusEventsCliTest(unittest.TestCase):
         access = {
             "student": {"browse-events", "registrations"},
             "organizer": {"browse-events", "manage-events"},
-            "admin": {"browse-events", "review-events"},
+            "admin": {"browse-events", "review-events", "checker-access"},
             "checker": {"browse-events", "check-in"},
         }
         entries = (
             "browse-events", "manage-events", "review-events", "check-in",
-            "registrations",
+            "registrations", "checker-access",
         )
         for username, allowed in access.items():
             for entry in entries:

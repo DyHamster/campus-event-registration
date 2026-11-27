@@ -15,6 +15,7 @@ from .access import (
     permissions_for,
     require_permission,
 )
+from .check_in import CheckInService
 from .database import create_schema, open_database, require_current_schema
 from .demo import seed_demo_accounts
 from .event_cli import add_event_arguments, run_event_command
@@ -25,6 +26,13 @@ from .registration_cli import (
     run_registration_command,
 )
 from .registrations import RegistrationError, RegistrationService
+from .ticket_cli import (
+    add_check_in_arguments,
+    add_checker_access_arguments,
+    run_check_in_command,
+    run_checker_access_command,
+)
+from .tickets import TicketError
 
 DEFAULT_DATABASE = Path("data/campus_events.sqlite3")
 ROLE_NAMES = {
@@ -39,6 +47,7 @@ ENTRY_NAMES = {
     Permission.REVIEW_EVENTS: "活动审核",
     Permission.CHECK_IN: "检票签到",
     Permission.REGISTRATIONS: "报名与候补",
+    Permission.CHECKER_ACCESS: "检票授权",
 }
 
 
@@ -65,7 +74,11 @@ def build_parser() -> argparse.ArgumentParser:
         entry = entries.add_parser(permission.value, help=name)
         if permission is Permission.REGISTRATIONS:
             add_registration_arguments(entry)
-        elif permission is not Permission.CHECK_IN:
+        elif permission is Permission.CHECK_IN:
+            add_check_in_arguments(entry)
+        elif permission is Permission.CHECKER_ACCESS:
+            add_checker_access_arguments(entry)
+        else:
             add_event_arguments(entry, permission)
     return parser
 
@@ -105,15 +118,23 @@ def login(args: argparse.Namespace) -> None:
         else:
             permission = Permission(args.entry)
             require_permission(user, permission)
+            require_current_schema(connection)
             heading = f"已进入「{ENTRY_NAMES[permission]}」。"
-            if permission is Permission.CHECK_IN:
-                output = heading
-            else:
-                require_current_schema(connection)
-                if permission is Permission.REGISTRATIONS:
+            match permission:
+                case Permission.REGISTRATIONS:
                     registrations = RegistrationService(connection, user)
                     output = run_registration_command(registrations, args)
-                else:
+                case Permission.CHECK_IN:
+                    check_in = CheckInService(connection, user)
+                    output = run_check_in_command(check_in, args)
+                    if args.check_in_action is None:
+                        output = f"{heading}\n{output}"
+                case Permission.CHECKER_ACCESS:
+                    check_in = CheckInService(connection, user)
+                    output = run_checker_access_command(check_in, args)
+                    if args.checker_access_action is None:
+                        output = f"{heading}\n{output}"
+                case _:
                     events = EventService(connection, user)
                     output = run_event_command(events, permission, args)
                     if args.event_action is None:
@@ -140,6 +161,7 @@ def main(argv: list[str] | None = None) -> int:
         AuthenticationError,
         EventError,
         RegistrationError,
+        TicketError,
         OSError,
         sqlite3.Error,
     ) as error:
