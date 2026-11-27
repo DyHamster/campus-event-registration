@@ -15,8 +15,11 @@ from .access import (
     permissions_for,
     require_permission,
 )
-from .database import create_schema, open_database
+from .database import create_schema, open_database, require_current_schema
 from .demo import seed_demo_accounts
+from .event_cli import add_event_arguments, run_event_command
+from .event_models import EventError
+from .events import EventService
 
 DEFAULT_DATABASE = Path("data/campus_events.sqlite3")
 ROLE_NAMES = {
@@ -51,17 +54,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     login = commands.add_parser("login", help="登录并查看或进入业务功能")
     login.add_argument("username", help="账号名")
-    login.add_argument(
-        "entry",
-        nargs="?",
-        choices=[permission.value for permission in Permission],
-        help="要进入的功能，省略时列出当前账号可访问的功能",
-    )
+    entries = login.add_subparsers(dest="entry", help="要进入的功能")
+    for permission, name in ENTRY_NAMES.items():
+        entry = entries.add_parser(permission.value, help=name)
+        if permission is not Permission.CHECK_IN:
+            add_event_arguments(entry, permission)
     return parser
 
 
 def initialize(path: Path, demo: bool) -> None:
-    """在同一事务中创建用户表并初始化演示数据。"""
+    """在同一事务中初始化数据库表和可选的演示账号。"""
     with open_database(path, create=True) as connection:
         connection.execute("BEGIN IMMEDIATE")
         create_schema(connection)
@@ -72,27 +74,40 @@ def initialize(path: Path, demo: bool) -> None:
         print(f"新增演示账号 {added} 个。")
 
 
-def login(path: Path, username: str, entry: str | None) -> None:
-    """验证账号后展示可访问入口，或检查并进入指定功能。"""
-    if not path.exists():
-        raise FileNotFoundError(f"数据库不存在，请先运行 init：{path}")
+def login(args: argparse.Namespace) -> None:
+    """验证账号后展示权限，或执行获准的业务命令。"""
+    if not args.database.exists():
+        raise FileNotFoundError(f"数据库不存在，请先运行 init：{args.database}")
 
-    with open_database(path) as connection:
+    with open_database(args.database) as connection:
         with warnings.catch_warnings():
             warnings.simplefilter("error", GetPassWarning)
             password = getpass("密码：")
-        user = authenticate(connection, username, password)
+        user = authenticate(connection, args.username, password)
 
-    if entry is not None:
-        permission = Permission(entry)
-        require_permission(user, permission)
-        print(f"已进入「{ENTRY_NAMES[permission]}」。")
-        return
+        if args.entry is None:
+            lines = [
+                f"已登录：{user.name}（{ROLE_NAMES[user.role]}）",
+                "可访问的功能：",
+            ]
+            for permission in permissions_for(user):
+                name = ENTRY_NAMES[permission]
+                lines.append(f"  {permission.value:16} {name}")
+            output = "\n".join(lines)
+        else:
+            permission = Permission(args.entry)
+            require_permission(user, permission)
+            heading = f"已进入「{ENTRY_NAMES[permission]}」。"
+            if permission is Permission.CHECK_IN:
+                output = heading
+            else:
+                require_current_schema(connection)
+                service = EventService(connection, user)
+                output = run_event_command(service, permission, args)
+                if args.event_action is None:
+                    output = f"{heading}\n{output}"
 
-    print(f"已登录：{user.name}（{ROLE_NAMES[user.role]}）")
-    print("可访问的功能：")
-    for permission in permissions_for(user):
-        print(f"  {permission.value:16} {ENTRY_NAMES[permission]}")
+    print(output)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -102,14 +117,14 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "init":
             initialize(args.database, args.demo)
         else:
-            login(args.database, args.username, args.entry)
+            login(args)
     except GetPassWarning:
         print("请在支持隐藏密码输入的终端中运行登录命令。", file=sys.stderr)
         return 1
     except (KeyboardInterrupt, EOFError):
         print("\n操作已取消。", file=sys.stderr)
         return 130
-    except (AuthenticationError, OSError, sqlite3.Error) as error:
+    except (AuthenticationError, EventError, OSError, sqlite3.Error) as error:
         print(f"操作失败：{error}", file=sys.stderr)
         return 1
     return 0

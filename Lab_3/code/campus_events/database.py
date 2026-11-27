@@ -5,6 +5,10 @@ from contextlib import closing, contextmanager
 from pathlib import Path
 from typing import Iterator
 
+from .event_models import EventError
+
+SCHEMA_VERSION = 2
+
 
 @contextmanager
 def open_database(
@@ -23,7 +27,10 @@ def open_database(
 
 
 def create_schema(connection: sqlite3.Connection) -> None:
-    """创建第一阶段所需的用户表，可在已有数据库上重复执行。"""
+    """创建数据库表，保留旧版本中的用户和活动。"""
+    version = connection.execute("PRAGMA user_version").fetchone()[0]
+    if version > SCHEMA_VERSION:
+        raise EventError("数据库版本高于程序支持的版本，请使用更新的程序。")
     connection.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -38,3 +45,57 @@ def create_schema(connection: sqlite3.Connection) -> None:
         )
         """
     )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY,
+            organizer_id INTEGER NOT NULL REFERENCES users(id),
+            name TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            description TEXT NOT NULL,
+            eligibility TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (
+                status IN (
+                    'draft', 'pending', 'rejected', 'published', 'cancelled'
+                )
+            ),
+            review_note TEXT NOT NULL DEFAULT ''
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS event_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            starts_at TEXT NOT NULL,
+            location TEXT NOT NULL,
+            capacity INTEGER NOT NULL CHECK (capacity > 0),
+            registration_deadline TEXT NOT NULL,
+            UNIQUE (event_id, name)
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS registration_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL
+                REFERENCES event_sessions(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            price_cents INTEGER NOT NULL CHECK (price_cents >= 0),
+            UNIQUE (session_id, name)
+        )
+        """
+    )
+    connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+
+
+def require_current_schema(connection: sqlite3.Connection) -> None:
+    """给使用旧数据库的用户提示升级命令。"""
+    version = connection.execute("PRAGMA user_version").fetchone()[0]
+    if version < SCHEMA_VERSION:
+        raise EventError("数据库需要升级，请先运行 init。")
+    if version > SCHEMA_VERSION:
+        raise EventError("数据库版本高于程序支持的版本，请使用更新的程序。")

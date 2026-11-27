@@ -1,0 +1,29 @@
+{
+  "name": "校园摄影讲座",
+  "kind": "讲座",
+  "description": "从校园取景出发，练习构图、光线和人像拍摄。",
+  "eligibility": "校内师生",
+  "sessions": [
+    {
+      "name": "午后场",
+      "starts_at": "2027-03-14T14:00:00+08:00",
+      "location": "教学楼 A101",
+      "capacity": 30,
+      "registration_deadline": "2027-03-14T12:00:00+08:00",
+      "categories": [
+        {"name": "旁听", "price_cents": 0},
+        {"name": "含实践材料", "price_cents": 1250}
+      ]
+    },
+    {
+      "name": "傍晚场",
+      "starts_at": "2027-03-14T17:00:00+08:00",
+      "location": "教学楼 A202",
+      "capacity": 20,
+      "registration_deadline": "2027-03-14T15:00:00+08:00",
+      "categories": [
+        {"name": "旁听", "price_cents": 0}
+      ]
+    }
+  ]
+}
