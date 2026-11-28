@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, empty, heading %}
+{% block content %}
+{{ heading('我的活动') }}
+{% if records %}
+<div class="record-list">
+  {% for record in records %}
+  {% set state=record.status.value %}
+  <article class="panel record">
+    <div>
+      <span class="badge {{ state }}">{{ '已签到' if state == 'confirmed' and record.checked_at else {'confirmed':'报名成功','waitlisted':'候补中','cancelled':'已取消'}[state] }}</span>
+      <h2>{{ record.event_name }}</h2>
+      <p class="muted">{{ record.session_name }} · {{ record.category_name }}</p>
+      {% if record.waitlist_position %}<p class="warm">候补第 {{ record.waitlist_position }} 位</p>{% endif %}
+      {% if record.checked_at %}<p class="muted">首次签到 {{ record.checked_at|when }}</p>{% endif %}
+    </div>
+    <div class="actions">
+      {% if state == 'confirmed' %}<a class="button outline" href="{{ url_for('public.ticket', registration_id=record.id) }}">查看电子票</a>{% endif %}
+      {% if state != 'cancelled' and not record.checked_at %}
+      <form method="post" action="{{ url_for('public.cancel_registration', registration_id=record.id) }}" data-confirm="确定取消这条报名或候补记录？">
+        {{ csrf() }}<button class="button quiet" type="submit">取消{{ '候补' if state == 'waitlisted' else '报名' }}</button>
+      </form>
+      {% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel">{{ empty('暂时没有报名记录') }}<p class="center"><a class="button" href="{{ url_for('public.catalog') }}">查看活动</a></p></div>
+{% endif %}
+{% endblock %}

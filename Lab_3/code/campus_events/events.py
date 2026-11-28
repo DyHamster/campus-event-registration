@@ -22,9 +22,15 @@ EDITABLE = frozenset({EventStatus.DRAFT, EventStatus.REJECTED})
 class EventService:
     """对当前用户执行活动操作，由调用者提交或回滚事务。"""
 
-    def __init__(self, connection: sqlite3.Connection, user: User) -> None:
+    def __init__(self, connection: sqlite3.Connection, user: User | None) -> None:
         self.connection = connection
-        self.user = user
+        self._user = user
+
+    @property
+    def user(self) -> User:
+        if self._user is None:
+            raise PermissionError("请先登录。")
+        return self._user
 
     def create(self, draft: EventDraft) -> int:
         """创建归属于当前举办方的草稿。"""
@@ -166,16 +172,28 @@ class EventService:
         event = self._get_event(permission, event_id)
         return EventDetail(event, self._get_sessions(event.id))
 
+    def catalog(
+        self, *, search: str | None = None, kind: str | None = None
+    ) -> tuple[EventDetail, ...]:
+        """读取公开活动及其场次的同一数据库快照。"""
+        self.connection.execute("BEGIN")
+        events = self.list_events(
+            Permission.BROWSE_EVENTS, search=search, kind=kind
+        )
+        return tuple(
+            EventDetail(event, self._get_sessions(event.id)) for event in events
+        )
+
     def _scope(
         self, permission: Permission
     ) -> tuple[str, tuple[int | str, ...]]:
+        if permission is Permission.BROWSE_EVENTS:
+            return "status = ?", (EventStatus.PUBLISHED.value,)
         require_permission(self.user, permission)
         if permission is Permission.MANAGE_EVENTS:
             return "organizer_id = ?", (self.user.id,)
         if permission is Permission.REVIEW_EVENTS:
             return "status = ?", (EventStatus.PENDING.value,)
-        if permission is Permission.BROWSE_EVENTS:
-            return "status = ?", (EventStatus.PUBLISHED.value,)
         raise ValueError("unsupported event permission")
 
     def _get_event(self, permission: Permission, event_id: int) -> Event:

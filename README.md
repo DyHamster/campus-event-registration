@@ -1,5 +1,17 @@
 # campus-event-registration
 
+实验三已实现命令行和本地网页界面。运行环境、演示账号、业务示例与打包步骤见 [实验三使用说明](Lab_3/code/README.md)。
+
+首次启动，在仓库目录执行以下命令。
+
+```sh
+cd Lab_3/code
+make setup
+make demo
+```
+
+浏览器打开 [集会活动广场](http://127.0.0.1:8000/)，演示密码为 `campus-demo`。以后在 `Lab_3/code` 执行 `make demo` 即可启动。
+
 ## 校园活动报名系统
 
 参考大麦、猫眼、活动行等产品，至少覆盖：

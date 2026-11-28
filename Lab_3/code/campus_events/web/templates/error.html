@@ -1,0 +1,4 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="panel error-page"><span class="badge neutral">{{ status }}</span><h1>{{ title }}</h1><p>{{ message }}</p><a class="button" href="{{ url_for('public.catalog') }}">返回活动广场</a></div>
+{% endblock %}

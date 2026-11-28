@@ -4,6 +4,7 @@
 title UML 组件图 · 校园活动票务与报名系统
 
 component "命令行入口\ncli.py" as CLI
+component "本地网页入口\nweb/ · Flask" as Web
 component "身份与角色权限\naccess.py" as Auth
 component "活动管理、审核与查询\nevents.py" as Event
 component "报名与候补\nregistrations.py" as Registration
@@ -17,6 +18,11 @@ CLI --> Event
 CLI --> Registration
 CLI --> Ticket
 CLI --> Report
+Web --> Auth
+Web --> Event
+Web --> Registration
+Web --> Ticket
+Web --> Report
 Auth --> Data
 Event --> Data
 Registration --> Data

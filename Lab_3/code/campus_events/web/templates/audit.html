@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "macros.html" import empty, heading %}
+{% set labels = {'event.create':'创建活动','event.edit':'编辑活动','event.submit':'提交审核','event.approve':'审核通过','event.reject':'审核驳回','event.cancel':'取消活动','checker.grant':'授予检票权限','checker.revoke':'撤销检票权限','ticket.check-in':'检票签到','roster.export':'导出名单'} %}
+{% set outcomes = {'success':'成功','duplicate':'重复签到','rejected':'拒绝或失败'} %}
+{% block content %}
+{{ heading('操作日志') }}
+<form class="panel inline-form" method="get">
+  <label>操作类型<select name="action"><option value="">全部操作</option>{% for item in actions %}<option value="{{ item.value }}" {% if item == action %}selected{% endif %}>{{ labels[item.value] }}</option>{% endfor %}</select></label>
+  <label>执行结果<select name="outcome"><option value="">全部结果</option>{% for key, label in outcomes.items() %}<option value="{{ key }}" {% if outcome and outcome.value == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <button class="button" type="submit">查询日志</button>
+</form>
+<section class="panel">
+  <div class="panel-head"><h2>最近操作</h2><span class="muted">{{ entries|length }} 条记录</span></div>
+  {% if entries %}
+  <div class="table-scroll"><table>
+    <thead><tr><th>时间</th><th>操作者</th><th>操作</th><th>目标</th><th>结果</th></tr></thead>
+    <tbody>{% for entry in entries %}
+      <tr><td>{{ entry.occurred_at|when }}</td><td>{{ entry.actor }}</td><td><strong>{{ labels[entry.action.value] }}</strong></td><td>{{ ('活动' if entry.action.value.startswith('event.') else '场次') ~ ' #' ~ entry.target_id if entry.target_id else '—' }}</td><td><span class="badge {{ entry.outcome.value }}">{{ outcomes[entry.outcome.value] }}</span></td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}{{ empty('暂无匹配日志') }}{% endif %}
+</section>
+{% endblock %}

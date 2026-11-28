@@ -1,19 +1,37 @@
 # 校园活动票务与报名系统
 
-程序使用 Python 命令行和 SQLite。举办方创建活动并提交审核，也可以查看本人场次的统计和导出名单。平台管理员审核并发布活动，分配检票授权并查询操作日志。参与者报名成功后可领取电子票，由获授权的检票员核验并签到。
+程序提供 Python 命令行和本地网页界面，两个入口共享 SQLite 数据。举办方创建活动并提交审核，也可以查看本人场次的统计和导出名单。平台管理员审核并发布活动，分配检票授权并查询操作日志。参与者报名成功后可领取电子票，由获授权的检票员核验并签到。
 
-在本文件所在的 `code` 目录执行下列命令。需要 Python 3.10 或更高版本和 Make。业务命令和按票码检票使用 Python 标准库，二维码图片导出和识别需要安装 [依赖](#电子票和检票)。
+需要 Python 3.10 或更高版本。以下命令适用于 macOS、Linux 的终端，在本文件所在的 `Lab_3/code` 目录执行。Make 用于简化安装、启动、构建和测试，未安装 Make 时可使用下方等价命令。
+
+## 启动图形界面
+
+首次运行先安装依赖，再启动界面。
 
 ```sh
-make build
-make test
-python3 -B -m campus_events init --demo
-python3 -B -m campus_events login organizer
+make setup
+make demo
 ```
 
-`make build` 将程序编译为 Python 字节码，产物位于 `build/pycache/`。默认数据库位于 `data/campus_events.sqlite3`。运行 `init` 会创建或升级数据库表，保留已有账号、密码和活动。在旧演示库上执行 `init --demo` 会补齐新增参与者，并为仍使用原演示凭据的校内账号补上演示资格。
+浏览器打开 [集会活动广场](http://127.0.0.1:8000/)。以后在本目录执行 `make demo` 即可，Make 会自动使用 `.venv` 内的 Python。保持终端运行，在终端按 `Ctrl+C` 停止服务。依赖更新后重新执行 `make setup`。
 
-以下账号共用本地演示密码 `campus-demo`。请在终端密码提示后输入。
+界面使用独立演示库 `data/web-demo.sqlite3`，首次运行预置公开活动、一个待审核活动和检票授权。登录页可以选择四类演示账号，密码均为 `campus-demo`。重复启动会继续使用已有业务记录；活动只在数据库尚无活动时预置，示例日期按首次初始化时间生成。
+
+端口被占用时执行 `make demo PORT=8001`，并打开 [备用端口地址](http://127.0.0.1:8001/)。服务监听本机地址 `127.0.0.1`。
+
+未安装 Make 时，等价命令如下。
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -B -m campus_events.web --database data/web-demo.sqlite3 --demo
+```
+
+要打开命令行已有的默认数据库，执行 `.venv/bin/python -B -m campus_events.web`。也可以用 `--database 路径` 选择其他数据库、用 `--port 8001` 更换端口。界面和命令行操作同一数据库文件时可以互相看到变更。
+
+参与者可以搜索活动、选场次、报名或候补，并在「我的活动」查看二维码电子票。举办方可编辑草稿、提交审核、取消活动和导出名单。管理员可审核、授权和查询日志。检票员可粘贴票码或上传二维码图片检票。
+
+以下演示账号的密码均为 `campus-demo`。
 
 | 账号 | 角色 | 可访问的功能 |
 | --- | --- | --- |
@@ -22,6 +40,17 @@ python3 -B -m campus_events login organizer
 | `organizer` | 活动举办方 | 公开活动、活动管理、本人场次名单和统计 |
 | `admin` | 平台管理员 | 公开活动、活动审核、检票授权、操作日志 |
 | `checker` | 现场检票人员 | 公开活动、授权场次的检票签到 |
+
+## 命令行入口
+
+业务命令和按票码检票使用 Python 标准库。执行下列命令创建演示账号并登录，在终端密码提示后输入 `campus-demo`。
+
+```sh
+python3 -B -m campus_events init --demo
+python3 -B -m campus_events login organizer
+```
+
+默认数据库位于 `data/campus_events.sqlite3`。运行 `init` 会创建或升级数据库表，保留已有账号、密码和活动。在旧演示库上执行 `init --demo` 会补齐新增参与者，并为仍使用原演示凭据的校内账号补上演示资格。可用 `python3 -B -m campus_events --help` 查看命令入口。
 
 给 `login` 传入功能名可直接验证访问权限。举办方可以进入活动管理，普通参与者会收到拒绝提示，命令以状态码 `1` 退出。
 
@@ -119,6 +148,8 @@ campus login student2 registrations list
 
 每个场次分别授权。管理员可以用 `checker-access list` 查看分配，用 `checker-access revoke 1 checker` 撤销授权。已发布活动的有效票可在授权场次核验。已签到的报名不能自行取消。举办方取消活动会作废所有电子票并保留历史签到。
 
+有效报名的签到时间为空时，表示该报名尚无签到记录。系统保留其报名状态，名单导出同时提供报名状态和签到时间供举办方核对。缺席认定、累计次数和限制期限仍是待确认规则，当前功能不执行缺席处罚。
+
 ## 名单、容量统计和操作日志
 
 在上面的示例中，乙完成签到后，第一个场次有 1 个有效报名、1 个候补、1 条取消记录和 1 条签到记录。第二个场次仍有一个名额。继续使用同一演示库执行：
@@ -142,12 +173,34 @@ campus login admin audit --action ticket.check-in --outcome duplicate
 ## 构建和打包
 
 ```sh
+make setup
 make build
 make test
-wc -l campus_events/*.py
 ```
 
-`campus_events/` 是软件源码，`tests/` 是自动化测试。启用电子票图片依赖时，测试会覆盖 PNG 导出和识别。最终的四张 UML 图和对应的 PlantUML 源文件位于 [UML 目录](../UML/)。
+`make build` 使用当前 Python 将软件编译为字节码，产物位于 `build/pycache/`。`make test` 执行全部自动化测试，包括网页和二维码集成测试。先完成 `make setup` 可安装这些测试所需的 Flask、Pillow 和 zxing-cpp；缺少可选依赖时，对应测试会显示 `skipped`，验收时应确认无跳过项。可用 `make test PYTHON=/指定路径/python` 选择解释器。
+
+没有 Make 时，可在依赖安装后执行以下命令。
+
+```sh
+.venv/bin/python -m compileall -q campus_events
+.venv/bin/python -B -m unittest discover -s tests -v
+```
+
+源码规模可以使用下面的递归统计。范围为 `campus_events/` 下全部 Python 源文件，包含网页服务端，排除测试和工具。第二个数字按空行和以 `#` 开头的纯注释行进行过滤，保留文档字符串。
+
+```sh
+python3 -B - <<'PY'
+from pathlib import Path
+
+files = sorted(Path("campus_events").rglob("*.py"))
+lines = [line for path in files for line in path.read_text().splitlines()]
+nonempty = sum(bool(line.strip()) and not line.lstrip().startswith("#") for line in lines)
+print(f"Python 源文件 {len(files)} 个，总行数 {len(lines)}，去除空行与纯注释行 {nonempty}")
+PY
+```
+
+最终的四张 UML 图和对应的 PlantUML 源文件位于 [UML 目录](../UML/)，组件图包含命令行和网页两个入口。
 
 完成本人撰写的实验报告后，在本目录运行以下命令。打包工具会将报告、四组 UML 图片和源文件，以及源码、示例和构建说明放进同名目录，再压缩成 `实验3_241870097_丁瀚铭.zip`。
 
@@ -156,6 +209,32 @@ python3 -B tools/package_submission.py --report ../实验报告.pdf
 ```
 
 默认输出到 `Lab_3`，可用 `--directory` 指定输出目录。打包只选取交付文件，排除运行数据库、二维码、导出的名单、构建缓存以及虚拟环境。
+
+打包工具会检查报告 PDF 文件头及 UML 图片、源文件是否齐全。同名 ZIP 已存在时会提示失败，可用 `--directory` 选择另一个已存在的输出目录。实验报告须本人独立撰写，覆盖 UML 到代码的实现、源码规模、大模型辅助过程、编译运行结果和 Git 远程管理展示。提交截止时间为 2026 年 11 月 29 日 23:59，通过 cslab-cms 提交。
+
+## 目录与本地数据
+
+| 路径 | 内容 |
+| --- | --- |
+| `campus_events/*.py` | 权限、活动、报名、电子票、统计、数据库和命令行 |
+| `campus_events/web/` | Flask 入口、网页路由、表单与演示数据 |
+| `campus_events/web/templates/` | Jinja 页面和共用组件 |
+| `campus_events/web/static/` | 界面 CSS 与表单交互 JavaScript |
+| `tests/` | 自动化测试，使用临时数据库 |
+| `examples/` | 命令行活动配置示例 |
+| `tools/` | 课程提交包生成工具 |
+| `data/` | 运行数据库和用户导出文件 |
+| `build/`、`.venv/` | 本机构建缓存和依赖环境 |
+
+仓库忽略本机数据库、构建缓存、虚拟环境和 Finder 元数据。数据库保存账号、报名、票据和日志，删除数据库文件会清除对应数据。
+
+## 常见问题
+
+- 提示找不到 `campus_events` 时，确认终端位于本 README 所在的 `Lab_3/code` 目录。
+- 提示缺少 Flask、Pillow 或 zxing-cpp 时，在本目录重新执行 `make setup`，随后用 `make demo` 启动；命令行二维码操作可先 `source .venv/bin/activate`。
+- 提示地址已被占用时，使用 `make demo PORT=8001`，同时调整浏览器中的端口。
+- 若演示活动均已截止，可在举办方工作台新建活动并由管理员审核发布；也可以用 `--database data/另一份演示库.sqlite3 --demo` 启动一份新库。
+- 服务重启会要求重新登录。演示凭据适用于预置演示账号，原有数据库中的其他账号继续使用各自密码。
 
 ## 代码对应关系
 

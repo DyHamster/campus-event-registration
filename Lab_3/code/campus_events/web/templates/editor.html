@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, heading %}
+{% macro category(key, item) %}
+<div class="category-row" data-category>
+  <label>报名类别<input name="s{{ key }}_category" value="{{ item.name }}" required maxlength="80"></label>
+  <label>票价（元）<input type="number" name="s{{ key }}_price" min="0" step="0.01" value="{{ item.price }}" required></label>
+  <button class="button quiet" type="button" data-remove-category>移除类别</button>
+</div>
+{% endmacro %}
+{% macro session_fields(slot) %}
+{% set key = slot.key %}
+<fieldset class="session-editor" data-session>
+  <legend class="sr-only">场次编辑</legend>
+  <input type="hidden" name="session_key" value="{{ key }}">
+  <div class="field-grid">
+    <label>场次名称<input name="s{{ key }}_name" value="{{ slot.name }}" required maxlength="80"></label>
+    <label>地点<input name="s{{ key }}_location" value="{{ slot.location }}" required maxlength="100"></label>
+    <label>开始时间<input type="datetime-local" step="any" name="s{{ key }}_starts_at" value="{{ slot.starts_at }}" required></label>
+    <label>报名截止<input type="datetime-local" step="any" name="s{{ key }}_registration_deadline" value="{{ slot.registration_deadline }}" required></label>
+    <label>容量（人）<input type="number" min="1" step="1" name="s{{ key }}_capacity" value="{{ slot.capacity }}" required></label>
+  </div>
+  <div class="category-list" data-categories>{% for item in slot.categories %}{{ category(key, item) }}{% endfor %}</div>
+  <div class="actions"><button class="button outline small" type="button" data-add-category>＋ 添加报名类别</button><button class="button quiet small" type="button" data-remove-session>移除场次</button></div>
+</fieldset>
+{% endmacro %}
+{% block content %}
+<a class="back" href="{{ url_for('workspaces.organizer') }}">‹ 返回活动管理</a>
+{{ heading(title) }}
+{% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+<form class="stack editor-form" method="post">
+  {{ csrf() }}
+  <section class="panel">
+    <h2>基本信息</h2>
+    <div class="field-grid">
+      <label>活动名称<input name="name" value="{{ fields.name }}" required maxlength="100"></label>
+      <label>活动类型<input name="kind" list="event-kinds" value="{{ fields.kind }}" required maxlength="40"></label>
+      <datalist id="event-kinds"><option value="文艺演出"><option value="学术讲座"><option value="运动健康"><option value="社团活动"></datalist>
+      <label class="span-all">活动介绍<textarea name="description" rows="4" maxlength="2000">{{ fields.description }}</textarea></label>
+      <label>报名资格<select name="eligibility">
+        <option value="" {% if fields.eligibility in ['','不限'] %}selected{% endif %}>不限</option>
+        <option value="校内师生" {% if fields.eligibility == '校内师生' %}selected{% endif %}>校内师生</option>
+        {% if fields.eligibility not in ['', '不限', '校内师生'] %}<option value="{{ fields.eligibility }}" selected>{{ fields.eligibility }}</option>{% endif %}
+      </select></label>
+    </div>
+  </section>
+  <section class="panel" data-editor>
+    <div class="panel-head"><div><h2>场次与名额</h2><p class="muted">时间以北京时间填写。送审前请为每个场次设置报名类别。</p></div><button class="button outline" type="button" data-add-session>＋ 添加场次</button></div>
+    <div data-sessions>{% for slot in fields.sessions %}{{ session_fields(slot) }}{% endfor %}</div>
+    <template data-session-template>{{ session_fields({'key':'__KEY__','name':'','location':'','starts_at':'','registration_deadline':'','capacity':'','categories':[{'name':'','price':'0.00'}]}) }}</template>
+    <template data-category-template>{{ category('__KEY__', {'name':'','price':'0.00'}) }}</template>
+  </section>
+  <div class="actions"><button class="button" type="submit">保存草稿</button></div>
+</form>
+{% endblock %}

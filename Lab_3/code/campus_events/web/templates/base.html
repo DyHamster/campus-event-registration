@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN" data-type="software">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-type" content="software">
+  <meta name="site-kind" content="software">
+  <meta name="description" content="集会校园活动报名系统。查看活动、选择场次和报名。">
+  <meta name="theme-color" content="#123d33">
+  <meta property="og:title" content="{{ title }} · 集会">
+  <meta property="og:description" content="校园活动报名与电子票">
+  <meta property="og:type" content="website">
+  <title>{{ title }} · 集会</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='campus.css') }}">
+  <script src="{{ url_for('static', filename='campus.js') }}" defer></script>
+</head>
+{% set viewer = g.viewer %}
+{% set role = viewer.role.value if viewer else '' %}
+{% set workspace = request.blueprint == 'workspaces' and viewer %}
+{% set roles = {'participant':'参与者', 'organizer':'活动举办方', 'admin':'平台管理员', 'checker':'现场检票员'} %}
+{% set home = {'organizer':'workspaces.organizer', 'admin':'workspaces.review', 'checker':'workspaces.check_in'} %}
+{% set sections = {
+  'organizer':[('workspaces.organizer','活动管理','calendar'), ('workspaces.rosters','名单与统计','rows')],
+  'admin':[('workspaces.review','活动审核','calendar'), ('workspaces.checker_access','检票授权','scan'), ('workspaces.audit','操作日志','rows')],
+  'checker':[('workspaces.check_in','现场检票','scan')]
+} %}
+<body class="{{ 'has-workspace' if workspace else '' }}">
+  <a class="skip" href="#main">跳至主要内容</a>
+  {% if workspace %}
+  <aside class="sidebar">
+    <a class="brand" href="{{ url_for('public.catalog') }}"><span class="brand-mark" aria-hidden="true"></span><b>集会</b><small>CAMPUS</small></a>
+    <p class="sidebar-label">{{ roles[role] }}工作区</p>
+    <nav aria-label="工作区">
+      {% for endpoint, label, icon in sections[role] %}
+        {% set here = request.endpoint == endpoint or (endpoint == 'workspaces.organizer' and request.endpoint in ['workspaces.owned_event', 'workspaces.editor']) %}
+        <a href="{{ url_for(endpoint) }}" {% if here %}aria-current="page"{% endif %}>
+          <span class="icon i-{{ icon }}" aria-hidden="true"></span>{{ label }}
+        </a>
+      {% endfor %}
+    </nav>
+    <a class="side-return" href="{{ url_for('public.catalog') }}">返回活动广场 <span aria-hidden="true">↗</span></a>
+  </aside>
+  {% endif %}
+  <div class="page">
+    <header class="topbar nav">
+      <div class="wrap top-inner">
+        {% if workspace %}
+          <span class="breadcrumb">{{ roles[role] }} <span aria-hidden="true">/</span> {{ title }}</span>
+        {% else %}
+          <a class="brand" href="{{ url_for('public.catalog') }}"><span class="brand-mark" aria-hidden="true"></span><b>集会</b><small>CAMPUS</small></a>
+          <nav class="top-nav" aria-label="主导航">
+            <a href="{{ url_for('public.catalog') }}" {% if request.endpoint in ['public.catalog','public.event'] %}aria-current="page"{% endif %}>发现活动</a>
+            {% if role == 'participant' %}
+            <a href="{{ url_for('public.my_events') }}" {% if request.endpoint in ['public.my_events','public.ticket'] %}aria-current="page"{% endif %}>我的活动</a>
+            {% elif role in home %}
+            <a href="{{ url_for(home[role]) }}">工作台</a>
+            {% endif %}
+          </nav>
+        {% endif %}
+        <div class="account">
+          {% if viewer %}
+          <span class="avatar" aria-hidden="true">{{ viewer.name[:1] }}</span>
+          <span class="account-name">{{ viewer.name }}</span>
+          <form method="post" action="{{ url_for('public.logout') }}">
+            <input type="hidden" name="csrf" value="{{ session.csrf }}">
+            <button class="button small outline" type="submit">退出</button>
+          </form>
+          {% elif request.endpoint != 'public.login' %}
+          <a class="button small outline" href="{{ url_for('public.login') }}">登录</a>
+          {% endif %}
+        </div>
+      </div>
+    </header>
+    <main id="main" class="wrap app-main {% block main_class %}{% endblock %}">
+      {% for category, message in get_flashed_messages(with_categories=true) %}
+        <div class="notice {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</div>
+      {% endfor %}
+      {% block content %}{% endblock %}
+    </main>
+    {% if not workspace %}
+    <footer class="wrap footer"><strong>集会</strong><span>校园活动报名与电子票</span></footer>
+    {% endif %}
+  </div>
+</body>
+</html>

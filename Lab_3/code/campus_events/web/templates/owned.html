@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, event_badge, heading, slot_summary %}
+{% set event = detail.event %}
+{% block content %}
+<a class="back" href="{{ url_for('workspaces.organizer') }}">‹ 返回活动管理</a>
+<div class="page-head">
+  {{ heading(event.name, '活动 #' ~ event.id) }}
+  <div class="actions">{{ event_badge(event.status) }}
+    {% if event.status.value in ['draft','rejected'] %}
+    <a class="button outline" href="{{ url_for('workspaces.editor', event_id=event.id) }}">编辑活动</a>
+    <form method="post" action="{{ url_for('workspaces.owner_action', event_id=event.id, action='submit') }}">{{ csrf() }}<button class="button" type="submit">提交审核</button></form>
+    {% elif event.status.value == 'published' %}
+    <a class="button outline" href="{{ url_for('public.event', event_id=event.id) }}">查看公开页面</a>
+    {% endif %}
+  </div>
+</div>
+{% if event.review_note %}<div class="notice error">驳回意见：{{ event.review_note }}</div>{% endif %}
+<section class="panel"><h2>活动信息</h2>{{ slot_summary(detail) }}</section>
+{% if detail.sessions %}
+<section class="panel"><h2>报名与名单</h2><div class="actions">
+  {% for slot in detail.sessions %}
+  <a class="button outline" href="{{ url_for('workspaces.rosters', session=slot.id) }}">{{ slot.name }}名单</a>
+  {% endfor %}
+</div></section>
+{% endif %}
+{% if event.status.value != 'cancelled' %}
+<form class="section-action" method="post" action="{{ url_for('workspaces.owner_action', event_id=event.id, action='cancel') }}" data-confirm="取消活动会作废电子票，并取消现有报名与候补。确定取消？">
+  {{ csrf() }}<button class="button danger" type="submit">取消活动</button>
+</form>
+{% endif %}
+{% endblock %}

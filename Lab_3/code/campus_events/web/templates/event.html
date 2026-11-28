@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, empty %}
+{% set activity = detail.event %}
+{% block content %}
+<a class="back" href="{{ url_for('public.catalog') }}">‹ 返回活动广场</a>
+<div class="event-layout">
+  <section aria-labelledby="event-title">
+    <div class="cover detail-cover {{ art }}" aria-hidden="true"><span class="cover-shape"></span></div>
+    <div class="heading event-heading">
+      <span class="badge neutral">{{ activity.kind }}</span>
+      <h1 id="event-title">{{ activity.name }}</h1>
+      {% if activity.description %}<p class="preline">{{ activity.description }}</p>{% endif %}
+    </div>
+    <dl class="description">
+      {% if chosen %}
+      <div><dt>活动时间</dt><dd>{{ chosen.starts_at|when }}</dd></div>
+      <div><dt>地点</dt><dd>{{ chosen.location }}</dd></div>
+      {% endif %}
+      <div><dt>报名资格</dt><dd>{{ activity.eligibility or '不限' }}</dd></div>
+    </dl>
+    <div class="tip"><strong>关于候补</strong><p>名额已满时可以选择候补。有人取消后，系统会按顺序递补。</p></div>
+  </section>
+  <section class="panel reservation" aria-labelledby="reserve-heading">
+    <h2 id="reserve-heading">选择场次</h2><p class="muted">同一场次每人可报一次。</p>
+    {% if not chosen %}
+      {{ empty('暂无可选场次') }}
+    {% else %}
+    <nav class="slot-select" aria-label="场次">
+      {% for slot in detail.sessions %}
+        <a href="{{ url_for('public.event', event_id=activity.id, session=slot.id) }}" {% if slot.id == chosen.id %}aria-current="page"{% endif %}>
+          <strong>{{ slot.name }}</strong><span>{{ slot.starts_at|when('short') }} · {{ slot.location }}</span>
+        </a>
+      {% endfor %}
+    </nav>
+    <div class="occupancy">
+      <div><strong>报名名额</strong><span>{{ chosen.capacity - chosen.confirmed_count }} 个剩余</span></div>
+      <progress aria-label="已报名人数" value="{{ chosen.confirmed_count }}" max="{{ chosen.capacity }}"></progress>
+      <small>报名截止 {{ chosen.registration_deadline|when('short') }}</small>
+    </div>
+    {% if chosen.categories and not can_register %}
+    <div class="public-prices">
+      {% for item in chosen.categories %}<div><span>{{ item.name }}</span><strong>{{ item.price_cents|yuan }}</strong></div>{% endfor %}
+    </div>
+    {% endif %}
+    {% if chosen.registration_deadline <= now %}
+      <div class="tip">本场次报名已截止。</div>
+    {% elif not chosen.categories %}
+      <div class="tip">本场次暂无报名类别。</div>
+    {% elif not g.viewer %}
+      <a class="button full" href="{{ url_for('public.login', event=activity.id, session=chosen.id) }}">登录报名</a>
+    {% elif can_register %}
+    <form class="stack" method="post" action="{{ url_for('public.register', event_id=activity.id) }}">
+      {{ csrf() }}<input type="hidden" name="session" value="{{ chosen.id }}">
+      <label>报名类别<select name="category" required>{% for item in chosen.categories %}<option value="{{ item.id }}">{{ item.name }} · {{ item.price_cents|yuan }}</option>{% endfor %}</select></label>
+      <label>姓名<input name="name" value="{{ g.viewer.name }}" required maxlength="80" autocomplete="name"></label>
+      <label>联系方式<input name="contact" required maxlength="120" autocomplete="email" placeholder="手机号或邮箱"></label>
+      <label class="checkline"><input type="checkbox" name="waitlist">满额时加入候补</label>
+      <button class="button full" type="submit">提交报名 <span aria-hidden="true">→</span></button>
+    </form>
+    {% else %}<p class="muted">参与者账号可以报名。</p>{% endif %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

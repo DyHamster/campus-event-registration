@@ -1,0 +1,31 @@
+{% macro csrf() %}<input type="hidden" name="csrf" value="{{ session.csrf }}">{% endmacro %}
+
+{% macro event_badge(state) %}
+  <span class="badge {{ state.value }}">{{ {'draft':'草稿','pending':'待审核','rejected':'已驳回','published':'已发布','cancelled':'已取消'}[state.value] }}</span>
+{% endmacro %}
+
+{% macro empty(title, detail='') %}
+  <div class="empty-state"><span class="icon i-calendar" aria-hidden="true"></span><strong>{{ title }}</strong>{% if detail %}<p>{{ detail }}</p>{% endif %}</div>
+{% endmacro %}
+
+{% macro heading(title, subtitle='') %}
+  <div class="heading"><h1>{{ title }}</h1>{% if subtitle %}<p>{{ subtitle }}</p>{% endif %}</div>
+{% endmacro %}
+
+{% macro slot_summary(detail) %}
+  <dl class="description">
+    <div><dt>活动类型</dt><dd>{{ detail.event.kind }}</dd></div>
+    <div><dt>报名资格</dt><dd>{{ detail.event.eligibility or '不限' }}</dd></div>
+    {% if detail.event.description %}<div><dt>活动介绍</dt><dd class="preline">{{ detail.event.description }}</dd></div>{% endif %}
+  </dl>
+  <h3 class="minor-heading">活动场次</h3>
+  {% for slot in detail.sessions %}
+    <div class="summary-row">
+      <div><strong>{{ slot.name }}</strong><div class="muted">{{ slot.starts_at|when }} · {{ slot.location }}</div></div>
+      <div><strong>{{ slot.capacity }} 人</strong><div class="muted">截止 {{ slot.registration_deadline|when('short') }}</div></div>
+    </div>
+    <p class="slot-prices">{% for item in slot.categories %}<span>{{ item.name }} · {{ item.price_cents|yuan }}</span>{% endfor %}</p>
+  {% else %}
+    <p class="muted">暂无场次。</p>
+  {% endfor %}
+{% endmacro %}

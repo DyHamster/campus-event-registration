@@ -5,6 +5,7 @@ import os
 import sqlite3
 from dataclasses import dataclass
 from enum import Enum
+from io import StringIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -37,6 +38,7 @@ class SessionStats:
     """同一场次的容量、有效报名、候补、取消及历史签到人数。"""
 
     session_id: int
+    event_id: int
     event_name: str
     session_name: str
     status: EventStatus
@@ -54,7 +56,7 @@ class SessionStats:
 
 
 STATS_QUERY = """
-    SELECT session.id AS session_id, event.name AS event_name,
+    SELECT session.id AS session_id, session.event_id, event.name AS event_name,
            session.name AS session_name, event.status, session.capacity,
            COUNT(CASE WHEN record.status = 'confirmed' THEN 1 END)
                AS confirmed,
@@ -107,7 +109,8 @@ class RosterService:
     ) -> tuple[Registration, ...]:
         """查询并筛选一个场次的报名记录。"""
         require_permission(self.user, Permission.ROSTERS)
-        self.connection.execute("BEGIN")
+        if not self.connection.in_transaction:
+            self.connection.execute("BEGIN")
         self._stats_for_session(session_id)
         return self._records(session_id, status=status, search=search)
 
@@ -120,15 +123,31 @@ class RosterService:
         search: str | None,
     ) -> int:
         """保存筛选后的 CSV，返回导出的报名数。"""
+        data, count = self.export_csv(session_id, status=status, search=search)
+        _write_csv(path, data)
+        return count
+
+    def export_csv(
+        self,
+        session_id: int,
+        *,
+        status: RosterStatus | None,
+        search: str | None,
+    ) -> tuple[bytes, int]:
+        """生成可下载的 CSV 内容，并记录导出操作。"""
         require_permission(self.user, Permission.ROSTERS)
         self.connection.execute("BEGIN IMMEDIATE")
         self._stats_for_session(session_id)
         records = self._records(session_id, status=status, search=search)
+        with StringIO(newline="") as stream:
+            writer = csv.writer(stream)
+            writer.writerow(CSV_HEADER)
+            writer.writerows(_csv_row(record) for record in records)
+            data = stream.getvalue().encode("utf-8-sig")
         record_audit(
             self.connection, self.user, AuditAction.ROSTER_EXPORT, session_id
         )
-        _write_csv(path, records)
-        return len(records)
+        return data, len(records)
 
     def _stats_for_session(self, session_id: int) -> SessionStats:
         row = self.connection.execute(
@@ -168,6 +187,7 @@ class RosterService:
 def _stats(row: sqlite3.Row) -> SessionStats:
     return SessionStats(
         session_id=row["session_id"],
+        event_id=row["event_id"],
         event_name=row["event_name"],
         session_name=row["session_name"],
         status=EventStatus(row["status"]),
@@ -188,17 +208,15 @@ def check_in_time(record: Registration) -> str:
     )
 
 
-def _write_csv(path: Path, records: tuple[Registration, ...]) -> None:
+def _write_csv(path: Path, data: bytes) -> None:
     temp_path = None
     try:
         with NamedTemporaryFile(
-            mode="w", encoding="utf-8-sig", newline="", dir=path.parent,
+            mode="wb", dir=path.parent,
             prefix=".roster-", delete=False,
         ) as stream:
             temp_path = Path(stream.name)
-            writer = csv.writer(stream)
-            writer.writerow(CSV_HEADER)
-            writer.writerows(_csv_row(record) for record in records)
+            stream.write(data)
         os.link(temp_path, path)
     finally:
         if temp_path is not None:

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, empty, heading %}
+{% block content %}
+{{ heading('现场检票') }}
+{% if sessions %}
+<div class="check-layout">
+  <div class="scan-visual" aria-hidden="true"><span class="scan-guides"></span><span class="scan-line"></span></div>
+  <section class="panel">
+    <h2>核验电子票</h2>
+    <form class="stack" method="post" enctype="multipart/form-data">
+      {{ csrf() }}
+      <label>选择场次<select name="session" required>{% for slot in sessions %}<option value="{{ slot.session_id }}" {% if slot.session_id == selected %}selected{% endif %}>{{ slot.event_name }} · {{ slot.session_name }}</option>{% endfor %}</select></label>
+      <label>票码<input name="code" autocomplete="off" maxlength="100" placeholder="扫描或粘贴电子票票码"></label>
+      <label>或上传二维码图片<input type="file" name="qr" accept="image/png,image/jpeg"></label>
+      <button class="button full" type="submit">核验并签到</button>
+    </form>
+  </section>
+</div>
+{% else %}<div class="panel">{{ empty('暂无检票授权', '请由平台管理员为你的账号分配活动场次。') }}</div>{% endif %}
+{% endblock %}

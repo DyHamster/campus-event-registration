@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "macros.html" import empty %}
+{% block content %}
+<section class="hero" data-enter>
+  <div class="hero-copy">
+    <h1>发现校园活动</h1>
+    <a class="button accent" href="#activities">查看活动 <span aria-hidden="true">↗</span></a>
+  </div>
+  <div class="hero-art" data-visual aria-hidden="true">
+    <div class="hero-orbit"></div><div class="hero-orbit orbit-small"></div>
+    <div class="hero-stripes"></div>
+    <div class="hero-ticket"><span class="ticket-star">✳</span><span class="ticket-perf"></span><span class="ticket-lines"></span></div>
+  </div>
+</section>
+<section class="catalog" id="activities" aria-labelledby="catalog-heading">
+  <div class="section-head">
+    <div><h2 id="catalog-heading">公开活动</h2><p>{% if keyword or active_kind %}找到 {{ cards|length }} 项活动{% else %}{{ open_count }} 项活动开放报名{% endif %}</p></div>
+    <form class="searchbar" action="{{ url_for('public.catalog') }}" method="get">
+      <span class="icon i-search" aria-hidden="true"></span>
+      <label class="search-label" for="catalog-search">搜索活动</label>
+      <input id="catalog-search" name="q" type="search" placeholder="名称或地点" value="{{ keyword }}">
+      {% if active_kind %}<input type="hidden" name="kind" value="{{ active_kind }}">{% endif %}
+      <button class="button small outline" type="submit">搜索</button>
+    </form>
+  </div>
+  <nav class="filters" aria-label="活动分类">
+    <a href="{{ url_for('public.catalog', q=keyword) }}#activities" {% if not active_kind %}aria-current="page"{% endif %}>全部活动</a>
+    {% for kind in types %}
+    <a href="{{ url_for('public.catalog', q=keyword, kind=kind) }}#activities" {% if active_kind == kind %}aria-current="page"{% endif %}>{{ kind }}</a>
+    {% endfor %}
+  </nav>
+  {% if cards %}
+  <div class="card-grid">
+    {% for card in cards %}
+      {% set event = card.detail.event %}
+      {% set slot = card.slot %}
+      <article class="event-card">
+        <a href="{{ url_for('public.event', event_id=event.id) }}" aria-label="查看{{ event.name }}">
+          <div class="cover {{ card.art }}" aria-hidden="true">
+            <span class="cover-shape"></span>
+          </div>
+          <div class="event-copy">
+            <div class="event-meta"><span class="badge neutral">{{ event.kind }}</span>{% if card.detail.sessions|length > 1 %}<small>{{ card.detail.sessions|length }} 个场次</small>{% endif %}</div>
+            <h3>{{ event.name }}</h3>
+            {% if slot %}
+              <p><span class="icon i-calendar" aria-hidden="true"></span>{{ slot.starts_at|when('short') }}</p>
+              <p><span class="icon i-pin" aria-hidden="true"></span>{{ slot.location }}</p>
+            {% endif %}
+            <div class="card-foot">
+              {% if not card.open %}<span class="muted">报名已截止</span>
+              {% elif slot.confirmed_count < slot.capacity %}<span>剩余 {{ slot.capacity - slot.confirmed_count }} 个名额</span>
+              {% else %}<span class="warm">名额已满 · 可候补</span>{% endif %}
+              <strong>{{ card.price|yuan if card.price is not none else '—' }} <span aria-hidden="true">↗</span></strong>
+            </div>
+          </div>
+        </a>
+      </article>
+    {% endfor %}
+  </div>
+  {% else %}
+    {{ empty('没有找到公开活动', '试试其他关键词或活动分类。' if keyword or active_kind else '活动审核发布后会在这里显示。') }}
+  {% endif %}
+</section>
+{% endblock %}

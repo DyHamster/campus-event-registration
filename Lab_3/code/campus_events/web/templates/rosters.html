@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, empty, heading, event_badge %}
+{% set labels = {'confirmed':'报名成功', 'waitlisted':'候补中', 'cancelled':'已取消', 'checked-in':'已签到'} %}
+{% block content %}
+{{ heading('名单与统计') }}
+{% if stats %}
+<form class="panel inline-form" method="get">
+  <label>活动场次<select name="session">{% for slot in sessions %}<option value="{{ slot.session_id }}" {% if slot.session_id == stats.session_id %}selected{% endif %}>{{ slot.event_name }} · {{ slot.session_name }}</option>{% endfor %}</select></label>
+  <label>报名状态<select name="status"><option value="">全部状态</option>{% for key, label in labels.items() %}<option value="{{ key }}" {% if selected_status and selected_status.value == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <label>搜索姓名<input name="q" type="search" value="{{ search }}"></label><button class="button" type="submit">查询名单</button>
+</form>
+<div class="metrics">
+  {% for label, value in [('有效报名 / 容量', stats.confirmed ~ ' / ' ~ stats.capacity),('剩余名额',stats.available),('候补人数',stats.waitlisted),('已签到',stats.checked_in)] %}
+  <div class="metric"><span>{{ label }}</span><strong>{{ value }}</strong></div>
+  {% endfor %}
+</div>
+<section class="panel">
+  <div class="panel-head">
+    <div><h2>{{ stats.session_name }}名单</h2><p class="muted">{{ records|length }} 条匹配记录 · {{ stats.cancelled }} 条取消记录</p></div>
+    <form method="post" action="{{ url_for('workspaces.roster_export', session_id=stats.session_id) }}">
+      {{ csrf() }}<input type="hidden" name="q" value="{{ search }}"><input type="hidden" name="status" value="{{ selected_status.value if selected_status else '' }}">
+      <button class="button outline" type="submit">导出 CSV</button>
+    </form>
+  </div>
+  {% if records %}
+  <div class="table-scroll"><table>
+    <thead><tr><th>姓名</th><th>联系方式</th><th>报名类别</th><th>状态</th><th>候补顺位</th><th>签到时间</th></tr></thead>
+    <tbody>{% for record in records %}<tr>
+      <td><strong>{{ record.participant_name }}</strong></td><td>{{ record.contact }}</td><td>{{ record.category_name }}</td><td><span class="badge {{ record.status.value }}">{{ labels[record.status.value] }}</span></td><td>{{ record.waitlist_position or '—' }}</td><td>{{ record.checked_at|when }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}{{ empty('暂无匹配记录') }}{% endif %}
+</section>
+{% else %}<div class="panel">{{ empty('暂无可查看的场次', '创建活动并添加场次后，这里会显示统计。') }}</div>{% endif %}
+{% endblock %}

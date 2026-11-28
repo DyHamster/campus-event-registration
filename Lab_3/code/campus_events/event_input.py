@@ -27,7 +27,11 @@ def read_draft(path: Path) -> EventDraft:
         ) from error
     except ValueError as error:
         raise EventError("活动配置文件含超出解析范围的数值。") from error
+    return parse_draft(source)
 
+
+def parse_draft(source: object) -> EventDraft:
+    """校验活动草稿，供命令行和网页表单共同使用。"""
     draft = _object(
         source,
         "活动",

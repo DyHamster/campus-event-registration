@@ -80,6 +80,18 @@ def authenticate(
         candidate, account["password_hash"]
     ):
         raise AuthenticationError("用户名或密码不正确。")
+    return _user_from_row(account)
+
+
+def load_user(connection: sqlite3.Connection, user_id: int) -> User | None:
+    """从数据库重新读取已登录用户的角色。"""
+    row = connection.execute(
+        "SELECT id, username, name, role FROM users WHERE id = ?", (user_id,)
+    ).fetchone()
+    return _user_from_row(row) if row is not None else None
+
+
+def _user_from_row(account: sqlite3.Row) -> User:
     return User(
         id=account["id"],
         username=account["username"],

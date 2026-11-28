@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, empty, event_badge, heading, slot_summary %}
+{% block content %}
+<div class="page-head">{{ heading('活动审核') }}<span class="badge pending">待审核 {{ events|length }}</span></div>
+{% if detail %}
+<div class="review-layout">
+  <section class="panel review-list" aria-labelledby="queue">
+    <h2 id="queue">待审核活动</h2>
+    {% for event in events %}
+    <a href="{{ url_for('workspaces.review', event=event.id) }}" {% if event.id == detail.event.id %}aria-current="page"{% endif %}><strong>{{ event.name }}</strong><small>{{ event.kind }} · 活动 #{{ event.id }}</small></a>
+    {% endfor %}
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>{{ detail.event.name }}</h2>{{ event_badge(detail.event.status) }}</div>
+    {{ slot_summary(detail) }}
+    <div class="ruled review-actions">
+      <form method="post" action="{{ url_for('workspaces.review_action', event_id=detail.event.id, action='approve') }}">{{ csrf() }}<button class="button" type="submit">通过并发布</button></form>
+      <form class="stack" method="post" action="{{ url_for('workspaces.review_action', event_id=detail.event.id, action='reject') }}">
+        {{ csrf() }}<label>驳回意见<textarea rows="3" name="reason" required maxlength="1000"></textarea></label><button class="button danger" type="submit">驳回并说明</button>
+      </form>
+    </div>
+  </section>
+</div>
+{% else %}<div class="panel">{{ empty('暂无待审核活动', '举办方提交的活动会出现在这里。') }}</div>{% endif %}
+{% endblock %}

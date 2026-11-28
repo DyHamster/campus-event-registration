@@ -18,8 +18,11 @@ def submission_files(report: Path) -> list[tuple[Path, str]]:
     files = [(report, "实验报告.pdf")]
     for filename in ("Makefile", "README.md", "requirements.txt"):
         files.append((CODE / filename, f"code/{filename}"))
+    for path in sorted((CODE / "campus_events").rglob("*")):
+        if path.is_file() and path.suffix in {".py", ".html", ".css", ".js"}:
+            relative = path.relative_to(CODE).as_posix()
+            files.append((path, f"code/{relative}"))
     for folder, pattern in (
-        ("campus_events", "*.py"),
         ("examples", "*.json"),
         ("tests", "*.py"),
         ("tools", "*.py"),
@@ -29,8 +32,8 @@ def submission_files(report: Path) -> list[tuple[Path, str]]:
 
     uml = LAB / "UML"
     sources = sorted(uml.glob("*.puml"))
-    if len(sources) != 4:
-        raise ValueError("提交包需要四张 UML 图的 PlantUML 源文件。")
+    if not sources:
+        raise ValueError("缺少 UML 图的 PlantUML 源文件。")
     for source in sources:
         files.append((source, f"UML/{source.name}"))
         image = source.with_suffix(".png")

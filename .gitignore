@@ -1,0 +1,6 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+Lab_3/code/build/
+Lab_3/code/data/

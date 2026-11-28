@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, empty, heading %}
+{% block content %}
+{{ heading('检票授权') }}
+<section class="panel">
+  <h2>分配权限</h2>
+  {% if sessions and checkers %}
+  <form class="inline-form" method="post" action="{{ url_for('workspaces.change_access', action='grant') }}">
+    {{ csrf() }}
+    <label>活动场次<select name="session" required>{% for slot in sessions %}<option value="{{ slot.id }}">{{ slot.event_name }} · {{ slot.name }}</option>{% endfor %}</select></label>
+    <label>检票员<select name="checker" required>{% for checker in checkers %}<option value="{{ checker.username }}">{{ checker.name }} · {{ checker.username }}</option>{% endfor %}</select></label>
+    <button class="button" type="submit">授予权限</button>
+  </form>
+  {% else %}<p class="muted">发布活动并准备检票员账号后即可授权。</p>{% endif %}
+</section>
+<section class="panel">
+  <h2>已分配权限</h2>
+  {% if assigned %}
+  <div class="table-scroll"><table>
+    <thead><tr><th>检票员</th><th>活动场次</th><th>地点</th><th>操作</th></tr></thead>
+    <tbody>{% for row in assigned %}<tr><td>{{ row.checker_username }}</td><td><strong>{{ row.event_name }}</strong><small>{{ row.session_name }}</small></td><td>{{ row.location }}</td><td>
+      <form method="post" action="{{ url_for('workspaces.change_access', action='revoke') }}" data-confirm="确定撤销该场次的检票授权？">
+        {{ csrf() }}<input type="hidden" name="session" value="{{ row.session_id }}"><input type="hidden" name="checker" value="{{ row.checker_username }}"><button class="button quiet small" type="submit">撤销</button>
+      </form>
+    </td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}{{ empty('暂无已分配权限') }}{% endif %}
+</section>
+{% endblock %}

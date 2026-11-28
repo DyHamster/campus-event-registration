@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block main_class %}ticket-page{% endblock %}
+{% block content %}
+<a class="back" href="{{ url_for('public.my_events') }}">‹ 返回我的活动</a>
+<article class="pass">
+  <div class="pass-top">
+    <span class="badge {{ 'cancelled' if ticket.status.value == 'void' else 'neutral' }}">{{ {'valid':'有效','checked_in':'已签到','void':'已作废'}[ticket.status.value] }}</span>
+    <h1>{{ ticket.event_name }}</h1><p>{{ ticket.session_name }} · 电子票</p>
+  </div>
+  <div class="pass-body">
+    {% if ticket.status.value != 'void' %}
+      <img class="qr" src="{{ url_for('public.ticket_qr', registration_id=ticket.registration_id) }}" alt="入场检票二维码" width="248" height="248">
+      <p class="center muted">请向现场检票员出示电子票。</p>
+      <code class="ticket-code">{{ ticket.code }}</code>
+    {% endif %}
+    <dl class="description">
+      <div><dt>活动时间</dt><dd>{{ ticket.starts_at|when }}</dd></div>
+      <div><dt>地点</dt><dd>{{ ticket.location }}</dd></div>
+      {% if ticket.checked_at %}<div><dt>首次签到</dt><dd>{{ ticket.checked_at|when }}</dd></div>{% endif %}
+    </dl>
+  </div>
+</article>
+{% endblock %}
